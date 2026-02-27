@@ -2,21 +2,42 @@ import { DashboardLayout } from '@/components/DashboardLayout';
 import { useAllProfiles, useVerificationDocuments, useUpdateVerification, useAuditLog } from '@/hooks/useSupabaseData';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
-import { Shield, CheckCircle2, XCircle, Flag } from 'lucide-react';
+import { Shield, CheckCircle2, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const AdminVerificationsPage = () => {
   const { data: docs, isLoading } = useVerificationDocuments();
   const updateVerification = useUpdateVerification();
   const { toast } = useToast();
+  const qc = useQueryClient();
 
   const pending = docs?.filter(d => d.status === 'pending') || [];
   const reviewed = docs?.filter(d => d.status !== 'pending') || [];
 
-  const handleAction = async (id: string, status: 'approved' | 'rejected') => {
+  const handleAction = async (id: string, userId: string, status: 'approved' | 'rejected') => {
     try {
       await updateVerification.mutateAsync({ id, status });
+
+      // Update profile KYC status
+      const kycStatus = status === 'approved' ? 'verified' : 'rejected';
+      await (supabase as any)
+        .from('profiles')
+        .update({ kyc_status: kycStatus })
+        .eq('user_id', userId);
+
+      // Log compliance event
+      await supabase.rpc('log_compliance_event' as any, {
+        _event_type: status === 'approved' ? 'kyc.approved' : 'kyc.rejected',
+        _entity_type: 'user',
+        _entity_id: userId,
+        _details: { verification_document_id: id },
+        _severity: status === 'approved' ? 'info' : 'warning',
+      });
+
       toast({ title: `Verification ${status}` });
+      qc.invalidateQueries({ queryKey: ['all_profiles'] });
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     }
@@ -27,7 +48,7 @@ export const AdminVerificationsPage = () => {
       <div className="space-y-6 animate-fade-in">
         <div>
           <h1 className="text-2xl font-bold">Verifications</h1>
-          <p className="text-sm text-muted-foreground">Review and approve user verification documents</p>
+          <p className="text-sm text-muted-foreground">Review and approve user KYC/KYB documents</p>
         </div>
 
         {isLoading ? (
@@ -45,14 +66,14 @@ export const AdminVerificationsPage = () => {
                       </div>
                       <div>
                         <p className="font-medium">{(d.profiles as any)?.display_name || 'User'}</p>
-                        <p className="text-xs text-muted-foreground">{d.document_type}</p>
+                        <p className="text-xs text-muted-foreground">{d.document_type} · <a href={d.file_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">View Document</a></p>
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" className="bg-gradient-brand hover:opacity-90" onClick={() => handleAction(d.id, 'approved')}>
+                      <Button size="sm" className="bg-gradient-brand hover:opacity-90" onClick={() => handleAction(d.id, d.user_id, 'approved')}>
                         <CheckCircle2 className="mr-1 h-3 w-3" />Approve
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleAction(d.id, 'rejected')}>
+                      <Button size="sm" variant="outline" onClick={() => handleAction(d.id, d.user_id, 'rejected')}>
                         <XCircle className="mr-1 h-3 w-3" />Reject
                       </Button>
                     </div>
@@ -110,6 +131,7 @@ export const AdminUsersPage = () => {
                 <tr className="border-b border-border bg-muted">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">User</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Role</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">KYC</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Joined</th>
                 </tr>
               </thead>
@@ -120,6 +142,7 @@ export const AdminUsersPage = () => {
                       <p className="font-medium">{p.display_name}</p>
                     </td>
                     <td className="px-4 py-3 capitalize">{(p.user_roles as any)?.[0]?.role?.replace('_', ' ') || 'N/A'}</td>
+                    <td className="px-4 py-3"><StatusBadge status={(p as any).kyc_status || 'unverified'} /></td>
                     <td className="px-4 py-3 text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))}
