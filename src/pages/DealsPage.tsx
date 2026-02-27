@@ -57,7 +57,9 @@ const DealsPage = () => {
                   <Link to={`/messages?deal=${deal.id}`}>
                     <Button size="sm" variant="outline">Messages</Button>
                   </Link>
-                  <Button size="sm" variant="outline">View Contract</Button>
+                  <Link to={`/contracts?deal=${deal.id}`}>
+                    <Button size="sm" variant="outline">View Contract</Button>
+                  </Link>
                 </div>
               </div>
             ))}

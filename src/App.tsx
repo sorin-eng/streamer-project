@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RouteGuard, PublicRoute } from "@/components/RouteGuard";
+import { ComplianceGate } from "@/components/ComplianceGate";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
@@ -17,6 +18,7 @@ import ReportsPage from "./pages/ReportsPage";
 import ProfilePage from "./pages/ProfilePage";
 import { AdminVerificationsPage, AdminUsersPage, AdminAuditPage } from "./pages/AdminPages";
 import { TermsPage, PrivacyPage, CompliancePage } from "./pages/LegalPages";
+import ContractPage from "./pages/ContractPage";
 
 const queryClient = new QueryClient();
 
@@ -31,15 +33,16 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
             <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
-            <Route path="/dashboard" element={<RouteGuard><DashboardPage /></RouteGuard>} />
-            <Route path="/campaigns" element={<RouteGuard><CampaignsPage /></RouteGuard>} />
-            <Route path="/deals" element={<RouteGuard><DealsPage /></RouteGuard>} />
-            <Route path="/messages" element={<RouteGuard><MessagesPage /></RouteGuard>} />
-            <Route path="/reports" element={<RouteGuard><ReportsPage /></RouteGuard>} />
-            <Route path="/profile" element={<RouteGuard allowedRoles={['casino_manager', 'streamer']}><ProfilePage /></RouteGuard>} />
+            <Route path="/dashboard" element={<RouteGuard><ComplianceGate><DashboardPage /></ComplianceGate></RouteGuard>} />
+            <Route path="/campaigns" element={<RouteGuard><ComplianceGate><CampaignsPage /></ComplianceGate></RouteGuard>} />
+            <Route path="/deals" element={<RouteGuard><ComplianceGate><DealsPage /></ComplianceGate></RouteGuard>} />
+            <Route path="/messages" element={<RouteGuard><ComplianceGate><MessagesPage /></ComplianceGate></RouteGuard>} />
+            <Route path="/reports" element={<RouteGuard><ComplianceGate><ReportsPage /></ComplianceGate></RouteGuard>} />
+            <Route path="/profile" element={<RouteGuard allowedRoles={['casino_manager', 'streamer']}><ComplianceGate><ProfilePage /></ComplianceGate></RouteGuard>} />
             <Route path="/admin/verifications" element={<RouteGuard allowedRoles={['admin']}><AdminVerificationsPage /></RouteGuard>} />
             <Route path="/admin/users" element={<RouteGuard allowedRoles={['admin']}><AdminUsersPage /></RouteGuard>} />
             <Route path="/admin/audit" element={<RouteGuard allowedRoles={['admin']}><AdminAuditPage /></RouteGuard>} />
+            <Route path="/contracts" element={<RouteGuard><ComplianceGate requireKyc><ContractPage /></ComplianceGate></RouteGuard>} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/compliance" element={<CompliancePage />} />
