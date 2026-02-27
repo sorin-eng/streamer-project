@@ -1,6 +1,6 @@
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { StatusBadge } from '@/components/StatusBadge';
-import { mockDeals } from '@/data/mockData';
+import { useDeals } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -9,10 +9,7 @@ import { EmptyState } from '@/components/EmptyState';
 
 const DealsPage = () => {
   const { user } = useAuth();
-
-  const deals = user?.role === 'admin'
-    ? mockDeals
-    : mockDeals.filter(d => d.casinoId === user?.id || d.streamerId === user?.id);
+  const { data: deals, isLoading } = useDeals();
 
   return (
     <DashboardLayout>
@@ -22,7 +19,9 @@ const DealsPage = () => {
           <p className="text-sm text-muted-foreground">Track and manage your partnerships</p>
         </div>
 
-        {deals.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
+        ) : !deals?.length ? (
           <EmptyState
             icon={<Handshake className="h-6 w-6" />}
             title="No deals yet"
@@ -39,20 +38,20 @@ const DealsPage = () => {
                       <Handshake className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="font-semibold">{deal.campaignTitle}</h3>
+                      <h3 className="font-semibold">{(deal.campaigns as any)?.title}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {user?.role === 'streamer' ? deal.casinoBrand : deal.streamerName}
+                        {user?.role === 'streamer' ? (deal.organizations as any)?.name : (deal.profiles as any)?.display_name}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <StatusBadge status={deal.status} />
-                    <StatusBadge status={deal.dealType} />
+                    <StatusBadge status={deal.state} />
+                    <StatusBadge status={deal.deal_type} />
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1"><DollarSign className="h-3.5 w-3.5" />${deal.value.toLocaleString()}</span>
-                  {deal.startDate && <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{deal.startDate} → {deal.endDate}</span>}
+                  <span className="flex items-center gap-1"><DollarSign className="h-3.5 w-3.5" />${Number(deal.value).toLocaleString()}</span>
+                  {deal.start_date && <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{deal.start_date} → {deal.end_date}</span>}
                 </div>
                 <div className="mt-4 flex gap-2">
                   <Link to={`/messages?deal=${deal.id}`}>

@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { UserRole } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Zap, Building2, Video, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const roles: { value: UserRole; label: string; desc: string; icon: React.ReactNode }[] = [
-  { value: 'casino', label: 'Casino', desc: 'Licensed online casino operator', icon: <Building2 className="h-5 w-5" /> },
+type SignupRole = 'casino_manager' | 'streamer';
+
+const roles: { value: SignupRole; label: string; desc: string; icon: React.ReactNode }[] = [
+  { value: 'casino_manager', label: 'Casino', desc: 'Licensed online casino operator', icon: <Building2 className="h-5 w-5" /> },
   { value: 'streamer', label: 'Streamer', desc: 'Gambling content creator', icon: <Video className="h-5 w-5" /> },
 ];
 
@@ -17,7 +18,7 @@ const SignupPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [role, setRole] = useState<UserRole>('streamer');
+  const [role, setRole] = useState<SignupRole>('streamer');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
@@ -29,10 +30,10 @@ const SignupPage = () => {
     if (!ageConfirmed) { setError('You must confirm you are 18+'); return; }
     setError('');
     setLoading(true);
-    const ok = await signup(email, password, role, displayName);
+    const result = await signup(email, password, role, displayName);
     setLoading(false);
-    if (ok) navigate('/dashboard');
-    else setError('Signup failed');
+    if (result.ok) navigate('/dashboard');
+    else setError(result.error || 'Signup failed');
   };
 
   return (
@@ -98,7 +99,7 @@ const SignupPage = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Display Name</Label>
-              <Input id="name" placeholder={role === 'casino' ? 'Casino brand name' : 'Your streamer name'} value={displayName} onChange={e => setDisplayName(e.target.value)} required />
+              <Input id="name" placeholder={role === 'casino_manager' ? 'Casino brand name' : 'Your streamer name'} value={displayName} onChange={e => setDisplayName(e.target.value)} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
