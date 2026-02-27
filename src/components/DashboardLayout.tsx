@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ComplianceBypassBanner } from '@/components/ComplianceBypassBanner';
 
 const navByRole: Record<string, { to: string; label: string; icon: any }[]> = {
   casino_manager: [
@@ -109,6 +110,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden">
+        <ComplianceBypassBanner />
         <header className="flex h-16 items-center gap-4 border-b border-border bg-card px-4 lg:px-8">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5" />
