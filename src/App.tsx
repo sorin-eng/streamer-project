@@ -36,7 +36,7 @@ const App = () => (
             <Route path="/deals" element={<RouteGuard><DealsPage /></RouteGuard>} />
             <Route path="/messages" element={<RouteGuard><MessagesPage /></RouteGuard>} />
             <Route path="/reports" element={<RouteGuard><ReportsPage /></RouteGuard>} />
-            <Route path="/profile" element={<RouteGuard allowedRoles={['casino', 'streamer']}><ProfilePage /></RouteGuard>} />
+            <Route path="/profile" element={<RouteGuard allowedRoles={['casino_manager', 'streamer']}><ProfilePage /></RouteGuard>} />
             <Route path="/admin/verifications" element={<RouteGuard allowedRoles={['admin']}><AdminVerificationsPage /></RouteGuard>} />
             <Route path="/admin/users" element={<RouteGuard allowedRoles={['admin']}><AdminUsersPage /></RouteGuard>} />
             <Route path="/admin/audit" element={<RouteGuard allowedRoles={['admin']}><AdminAuditPage /></RouteGuard>} />

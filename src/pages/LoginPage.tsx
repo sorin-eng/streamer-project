@@ -18,17 +18,10 @@ const LoginPage = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const ok = await login(email, password);
+    const result = await login(email, password);
     setLoading(false);
-    if (ok) navigate('/dashboard');
-    else setError('Invalid credentials');
-  };
-
-  const demoLogin = async (email: string) => {
-    setLoading(true);
-    await login(email, 'demo');
-    setLoading(false);
-    navigate('/dashboard');
+    if (result.ok) navigate('/dashboard');
+    else setError(result.error || 'Invalid credentials');
   };
 
   return (
@@ -89,15 +82,6 @@ const LoginPage = () => {
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
-
-          <div className="space-y-2">
-            <p className="text-xs text-center text-muted-foreground">Quick demo access:</p>
-            <div className="grid grid-cols-3 gap-2">
-              <Button variant="outline" size="sm" onClick={() => demoLogin('marketing@betroyal.com')} className="text-xs">Casino</Button>
-              <Button variant="outline" size="sm" onClick={() => demoLogin('ace@slots.tv')} className="text-xs">Streamer</Button>
-              <Button variant="outline" size="sm" onClick={() => demoLogin('admin@brokerplatform.io')} className="text-xs">Admin</Button>
-            </div>
-          </div>
 
           <p className="text-center text-sm text-muted-foreground">
             Don't have an account?{' '}

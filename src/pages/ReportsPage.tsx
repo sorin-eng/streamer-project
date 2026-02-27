@@ -1,11 +1,19 @@
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { StatCard } from '@/components/StatCard';
+import { useCommissions, useReportUploads } from '@/hooks/useSupabaseData';
 import { Button } from '@/components/ui/button';
 import { DollarSign, Users, BarChart3, Upload } from 'lucide-react';
+import { StatusBadge } from '@/components/StatusBadge';
 
 const ReportsPage = () => {
   const { user } = useAuth();
+  const { data: commissions } = useCommissions();
+  const { data: uploads } = useReportUploads();
+
+  const totalAmount = commissions?.reduce((s, c) => s + Number(c.amount), 0) || 0;
+  const pendingCount = commissions?.filter(c => c.status === 'pending').length || 0;
+  const approvedCount = commissions?.filter(c => c.status === 'approved').length || 0;
 
   return (
     <DashboardLayout>
@@ -14,53 +22,48 @@ const ReportsPage = () => {
           <div>
             <h1 className="text-2xl font-bold">{user?.role === 'streamer' ? 'Earnings' : 'Reports'}</h1>
             <p className="text-sm text-muted-foreground">
-              {user?.role === 'casino' ? 'Upload and track campaign performance' : 'View your earnings and performance'}
+              {user?.role === 'casino_manager' ? 'Upload and track campaign performance' : 'View your earnings and performance'}
             </p>
           </div>
-          {user?.role === 'casino' && (
+          {user?.role === 'casino_manager' && (
             <Button className="bg-gradient-brand hover:opacity-90"><Upload className="mr-2 h-4 w-4" />Upload CSV Report</Button>
           )}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Total Revenue" value="$43,000" change="+18% vs last month" trend="up" icon={<DollarSign className="h-5 w-5" />} />
-          <StatCard label="Signups" value="1,247" change="+32%" trend="up" icon={<Users className="h-5 w-5" />} />
-          <StatCard label="FTDs" value="389" change="+15%" trend="up" icon={<BarChart3 className="h-5 w-5" />} />
-          <StatCard label="Net Revenue" value="$28,700" change="+22%" trend="up" icon={<DollarSign className="h-5 w-5" />} />
+          <StatCard label="Total Commissions" value={`$${totalAmount.toLocaleString()}`} icon={<DollarSign className="h-5 w-5" />} />
+          <StatCard label="Pending" value={pendingCount} icon={<BarChart3 className="h-5 w-5" />} />
+          <StatCard label="Approved" value={approvedCount} icon={<Users className="h-5 w-5" />} />
+          <StatCard label="Reports Uploaded" value={uploads?.length || 0} icon={<Upload className="h-5 w-5" />} />
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-6 shadow-card">
-          <h2 className="font-semibold mb-4">Performance by Campaign</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left">
-                  <th className="pb-3 font-medium text-muted-foreground">Campaign</th>
-                  <th className="pb-3 font-medium text-muted-foreground">Signups</th>
-                  <th className="pb-3 font-medium text-muted-foreground">FTDs</th>
-                  <th className="pb-3 font-medium text-muted-foreground">Net Revenue</th>
-                  <th className="pb-3 font-medium text-muted-foreground">Commission</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                <tr>
-                  <td className="py-3 font-medium">Live Casino Ambassador</td>
-                  <td className="py-3">847</td>
-                  <td className="py-3">256</td>
-                  <td className="py-3">$18,400</td>
-                  <td className="py-3 text-success">$2,760</td>
-                </tr>
-                <tr>
-                  <td className="py-3 font-medium">Summer Slots Showdown</td>
-                  <td className="py-3">400</td>
-                  <td className="py-3">133</td>
-                  <td className="py-3">$10,300</td>
-                  <td className="py-3 text-success">$1,545</td>
-                </tr>
-              </tbody>
-            </table>
+        {commissions && commissions.length > 0 && (
+          <div className="rounded-xl border border-border bg-card p-6 shadow-card">
+            <h2 className="font-semibold mb-4">Commission History</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left">
+                    <th className="pb-3 font-medium text-muted-foreground">Campaign</th>
+                    <th className="pb-3 font-medium text-muted-foreground">Amount</th>
+                    <th className="pb-3 font-medium text-muted-foreground">Status</th>
+                    <th className="pb-3 font-medium text-muted-foreground">Period</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {commissions.map(c => (
+                    <tr key={c.id}>
+                      <td className="py-3 font-medium">{(c.deals as any)?.campaigns?.title || 'N/A'}</td>
+                      <td className="py-3">${Number(c.amount).toLocaleString()}</td>
+                      <td className="py-3"><StatusBadge status={c.status} /></td>
+                      <td className="py-3 text-muted-foreground">{c.period_start || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </DashboardLayout>
   );

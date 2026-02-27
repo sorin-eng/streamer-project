@@ -1,5 +1,4 @@
 import { cn } from '@/lib/utils';
-import { CampaignStatus, DealStatus, ApplicationStatus, DealType } from '@/types';
 
 const statusStyles: Record<string, string> = {
   open: 'bg-success/10 text-success border-success/20',
@@ -15,9 +14,18 @@ const statusStyles: Record<string, string> = {
   shortlisted: 'bg-info/10 text-info border-info/20',
   accepted: 'bg-success/10 text-success border-success/20',
   rejected: 'bg-destructive/10 text-destructive border-destructive/20',
+  approved: 'bg-success/10 text-success border-success/20',
+  withdrawn: 'bg-muted text-muted-foreground border-border',
+  paused: 'bg-warning/10 text-warning border-warning/20',
+  paid: 'bg-success/10 text-success border-success/20',
+  processing: 'bg-info/10 text-info border-info/20',
+  failed: 'bg-destructive/10 text-destructive border-destructive/20',
+  pending_signature: 'bg-warning/10 text-warning border-warning/20',
+  signed: 'bg-success/10 text-success border-success/20',
+  expired: 'bg-muted text-muted-foreground border-border',
 };
 
-const dealTypeLabels: Record<DealType, string> = {
+const dealTypeLabels: Record<string, string> = {
   revshare: 'Rev Share',
   cpa: 'CPA',
   hybrid: 'Hybrid',
@@ -25,12 +33,12 @@ const dealTypeLabels: Record<DealType, string> = {
 };
 
 interface StatusBadgeProps {
-  status: CampaignStatus | DealStatus | ApplicationStatus | DealType;
+  status: string;
   className?: string;
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) => {
-  const label = dealTypeLabels[status as DealType] || status.replace(/_/g, ' ');
+  const label = dealTypeLabels[status] || status.replace(/_/g, ' ');
   return (
     <span className={cn(
       "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize",
