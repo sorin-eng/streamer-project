@@ -20,6 +20,7 @@ import ReportsPage from "./pages/ReportsPage";
 import ProfilePage from "./pages/ProfilePage";
 import ListingsPage from "./pages/ListingsPage";
 import StreamersPage from "./pages/StreamersPage";
+import StreamerDetailPage from "./pages/StreamerDetailPage";
 import { AdminVerificationsPage, AdminUsersPage, AdminAuditPage } from "./pages/AdminPages";
 import { TermsPage, PrivacyPage, CompliancePage } from "./pages/LegalPages";
 import ContractPage from "./pages/ContractPage";
