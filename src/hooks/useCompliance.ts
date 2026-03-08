@@ -18,13 +18,11 @@ interface ComplianceGateResult {
   blockers: string[];
 }
 
-/** If bypass mode is active, auto-create placeholder records and return a fully-compliant status. */
 async function applyBypass(userId: string): Promise<ComplianceStatus> {
   const bypassDetails = { bypass_mode: true, reason: 'COMPLIANCE_BYPASS_MODE=true, non-production' };
 
-  // Age verification placeholder
-  await (supabase as any)
-    .from('age_verifications')
+  await supabase
+    .from('age_verifications' as any)
     .upsert({
       user_id: userId,
       date_of_birth: '1990-01-01',
@@ -32,18 +30,17 @@ async function applyBypass(userId: string): Promise<ComplianceStatus> {
       jurisdiction: 'dev-default',
     }, { onConflict: 'user_id' });
 
-  // Disclaimer placeholders
   for (const dtype of ['terms', 'privacy']) {
-    const { data: existing } = await (supabase as any)
-      .from('disclaimer_acceptances')
+    const { data: existing } = await supabase
+      .from('disclaimer_acceptances' as any)
       .select('id')
       .eq('user_id', userId)
       .eq('disclaimer_type', dtype)
       .maybeSingle();
 
     if (!existing) {
-      await (supabase as any)
-        .from('disclaimer_acceptances')
+      await supabase
+        .from('disclaimer_acceptances' as any)
         .insert({
           user_id: userId,
           disclaimer_type: dtype,
@@ -52,13 +49,11 @@ async function applyBypass(userId: string): Promise<ComplianceStatus> {
     }
   }
 
-  // KYC status -> verified (on profiles)
-  await (supabase as any)
+  await supabase
     .from('profiles')
-    .update({ kyc_status: 'verified' })
+    .update({ kyc_status: 'verified' } as any)
     .eq('user_id', userId);
 
-  // Log bypass event
   await supabase.rpc('log_compliance_event' as any, {
     _event_type: 'compliance.bypass_applied',
     _entity_type: 'user',
@@ -83,14 +78,12 @@ export function useComplianceStatus() {
     queryFn: async (): Promise<ComplianceStatus> => {
       if (!user) throw new Error('No user');
 
-      // Try real check first
       const { data, error } = await supabase.rpc('check_user_compliance' as any, {
         _user_id: user.id,
       });
 
       const compliance = (error ? null : data) as ComplianceStatus | null;
 
-      // If bypass is active and user isn't fully compliant, auto-create records
       if (complianceBypass.isEnabled) {
         if (!compliance || !compliance.fully_compliant) {
           return applyBypass(user.id);
@@ -112,7 +105,6 @@ export function useComplianceGate() {
       entity_id?: string;
       country?: string;
     }): Promise<ComplianceGateResult> => {
-      // In bypass mode, pass everything except explicit geo blocks
       if (complianceBypass.isEnabled) {
         await supabase.rpc('log_compliance_event' as any, {
           _event_type: 'compliance.bypass_applied',
@@ -170,8 +162,8 @@ export function useSubmitAgeVerification() {
         throw new Error(`You must be at least ${minAge} years old`);
       }
 
-      const { error } = await (supabase as any)
-        .from('age_verifications')
+      const { error } = await supabase
+        .from('age_verifications' as any)
         .upsert({
           user_id: user.id,
           date_of_birth: params.date_of_birth,
@@ -201,8 +193,8 @@ export function useAcceptDisclaimer() {
       disclaimer_version?: string;
     }) => {
       if (!user) throw new Error('Not authenticated');
-      const { error } = await (supabase as any)
-        .from('disclaimer_acceptances')
+      const { error } = await supabase
+        .from('disclaimer_acceptances' as any)
         .insert({
           user_id: user.id,
           disclaimer_type: params.disclaimer_type,
@@ -248,9 +240,9 @@ export function useSubmitKycDocument() {
         });
       if (docErr) throw docErr;
 
-      await (supabase as any)
+      await supabase
         .from('profiles')
-        .update({ kyc_status: 'pending' })
+        .update({ kyc_status: 'pending' } as any)
         .eq('user_id', user.id);
 
       await supabase.rpc('log_compliance_event' as any, {
