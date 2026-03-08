@@ -41,12 +41,12 @@ const SignupPage = () => {
     <div className="flex min-h-screen">
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-dark flex-col justify-between p-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 80% 80%, hsl(263, 70%, 58%) 0%, transparent 50%), radial-gradient(circle at 20% 20%, hsl(40, 96%, 53%) 0%, transparent 40%)' }} />
-        <div className="relative flex items-center gap-2.5">
+        <Link to="/" className="relative flex items-center gap-2.5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-brand shadow-glow">
             <Radio className="h-5 w-5 text-primary-foreground" />
           </div>
           <span className="text-xl font-bold text-primary-foreground" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Castreamino</span>
-        </div>
+        </Link>
         <div className="relative">
           <h1 className="text-4xl font-bold text-primary-foreground leading-tight">Join the Platform</h1>
           <p className="mt-4 text-lg text-primary-foreground/70 max-w-md">
