@@ -179,7 +179,7 @@ const ReportsPage = () => {
                 <SelectTrigger><SelectValue placeholder="Choose a deal..." /></SelectTrigger>
                 <SelectContent>
                   {(deals || []).map(d => (
-                    <SelectItem key={d.id} value={d.id}>{(d.campaigns as any)?.title} — ${Number(d.value).toLocaleString()}</SelectItem>
+                    <SelectItem key={d.id} value={d.id}>{(d.campaigns as any)?.title || 'Direct Deal'} — ${Number(d.value).toLocaleString()}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
