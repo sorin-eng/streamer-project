@@ -178,9 +178,28 @@ const AdminDashboard = () => {
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Total Users" value={stats?.totalUsers ?? 0} icon={<Users className="h-5 w-5" />} />
-        <StatCard label="Campaigns" value={stats?.totalCampaigns ?? 0} icon={<Megaphone className="h-5 w-5" />} />
-        <StatCard label="Deals" value={stats?.totalDeals ?? 0} icon={<Handshake className="h-5 w-5" />} />
+        <StatCard label="Active Campaigns" value={stats?.activeCampaigns ?? 0} icon={<Megaphone className="h-5 w-5" />} />
+        <StatCard label="Active Deals" value={stats?.activeDeals ?? 0} icon={<Handshake className="h-5 w-5" />} />
         <StatCard label="Platform Revenue" value={`$${(stats?.platformRevenue ?? 0).toLocaleString()}`} icon={<TrendingUp className="h-5 w-5" />} />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <StatCard label="Total Campaigns" value={stats?.totalCampaigns ?? 0} icon={<Megaphone className="h-5 w-5" />} />
+        <StatCard label="Total Deals" value={stats?.totalDeals ?? 0} icon={<Handshake className="h-5 w-5" />} />
+        <StatCard label="Pending Verifications" value={stats?.pendingVerifications ?? 0} icon={<Shield className="h-5 w-5" />} />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Link to="/admin/verifications">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-elevated transition-shadow cursor-pointer">
+            <h3 className="font-semibold mb-1">Verifications</h3>
+            <p className="text-sm text-muted-foreground">Review pending KYC documents</p>
+          </div>
+        </Link>
+        <Link to="/admin/audit">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-elevated transition-shadow cursor-pointer">
+            <h3 className="font-semibold mb-1">Audit Log</h3>
+            <p className="text-sm text-muted-foreground">Track all platform activity</p>
+          </div>
+        </Link>
       </div>
     </div>
   );
