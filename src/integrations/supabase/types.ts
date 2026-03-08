@@ -303,6 +303,7 @@ export type Database = {
           id: string
           period_end: string | null
           period_start: string | null
+          platform_fee: number
           status: Database["public"]["Enums"]["commission_status"]
           streamer_id: string
           updated_at: string
@@ -316,6 +317,7 @@ export type Database = {
           id?: string
           period_end?: string | null
           period_start?: string | null
+          platform_fee?: number
           status?: Database["public"]["Enums"]["commission_status"]
           streamer_id: string
           updated_at?: string
@@ -329,6 +331,7 @@ export type Database = {
           id?: string
           period_end?: string | null
           period_start?: string | null
+          platform_fee?: number
           status?: Database["public"]["Enums"]["commission_status"]
           streamer_id?: string
           updated_at?: string
@@ -636,6 +639,7 @@ export type Database = {
           end_date: string | null
           id: string
           organization_id: string
+          platform_fee_pct: number
           start_date: string | null
           state: string
           streamer_id: string
@@ -650,6 +654,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           organization_id: string
+          platform_fee_pct?: number
           start_date?: string | null
           state?: string
           streamer_id: string
@@ -664,6 +669,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           organization_id?: string
+          platform_fee_pct?: number
           start_date?: string | null
           state?: string
           streamer_id?: string
