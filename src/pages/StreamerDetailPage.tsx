@@ -13,6 +13,8 @@ import {
   Users, Globe, DollarSign, ExternalLink, MessageSquare, ArrowLeft,
   Eye, TrendingUp, BarChart3, Zap
 } from 'lucide-react';
+import type { StreamerWithProfile } from '@/types/supabase-joins';
+import type { Tables } from '@/integrations/supabase/types';
 
 const StreamerDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,7 +25,7 @@ const StreamerDetailPage = () => {
   const [contactOpen, setContactOpen] = useState(false);
   const [contactMessage, setContactMessage] = useState('');
 
-  const streamer = streamers?.find(s => s.user_id === id);
+  const streamer = streamers?.find((s: StreamerWithProfile) => s.user_id === id);
 
   const handleContact = async () => {
     if (!streamer) return;
@@ -36,8 +38,9 @@ const StreamerDetailPage = () => {
       setContactOpen(false);
       setContactMessage('');
       navigate('/deals');
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
 
@@ -57,17 +60,15 @@ const StreamerDetailPage = () => {
     );
   }
 
-  const displayName = (streamer.profiles as any)?.display_name || 'Streamer';
+  const displayName = streamer.profiles?.display_name || 'Streamer';
 
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in max-w-4xl">
-        {/* Back button */}
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
           <ArrowLeft className="mr-2 h-4 w-4" />Back
         </Button>
 
-        {/* Header */}
         <div className="rounded-xl border border-border bg-card p-6 shadow-card">
           <div className="flex flex-col sm:flex-row sm:items-center gap-5">
             <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-brand text-3xl font-bold text-primary-foreground shrink-0">
@@ -89,7 +90,6 @@ const StreamerDetailPage = () => {
           </div>
         </div>
 
-        {/* Stats grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
             { label: 'Followers', value: ((streamer.follower_count || 0) / 1000).toFixed(0) + 'K', icon: Users },
@@ -105,7 +105,6 @@ const StreamerDetailPage = () => {
           ))}
         </div>
 
-        {/* Platforms & links */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-card space-y-4">
           <h2 className="font-semibold">Platforms & Links</h2>
           <div className="flex gap-2 flex-wrap">
@@ -124,7 +123,6 @@ const StreamerDetailPage = () => {
           </div>
         </div>
 
-        {/* Audience geo */}
         {(streamer.audience_geo || []).length > 0 && (
           <div className="rounded-xl border border-border bg-card p-5 shadow-card space-y-3">
             <h2 className="font-semibold flex items-center gap-2"><Globe className="h-4 w-4" />Audience Geography</h2>
@@ -136,12 +134,11 @@ const StreamerDetailPage = () => {
           </div>
         )}
 
-        {/* Listings */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-card space-y-4">
           <h2 className="font-semibold flex items-center gap-2"><Zap className="h-4 w-4" />Active Listings</h2>
           {streamer.listings && streamer.listings.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              {streamer.listings.map((listing: any) => (
+              {streamer.listings.map((listing: Tables<'streamer_listings'>) => (
                 <div key={listing.id} className="rounded-lg border border-border p-4 space-y-2">
                   <h3 className="font-medium">{listing.title}</h3>
                   {listing.description && <p className="text-sm text-muted-foreground line-clamp-2">{listing.description}</p>}
@@ -166,7 +163,6 @@ const StreamerDetailPage = () => {
           )}
         </div>
 
-        {/* Past deals stat */}
         {streamer.past_deals > 0 && (
           <div className="text-sm text-muted-foreground text-center">
             {streamer.past_deals} completed deal{streamer.past_deals !== 1 ? 's' : ''} on Castreamino
@@ -174,7 +170,6 @@ const StreamerDetailPage = () => {
         )}
       </div>
 
-      {/* Contact Dialog */}
       <Dialog open={contactOpen} onOpenChange={setContactOpen}>
         <DialogContent>
           <DialogHeader>

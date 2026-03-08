@@ -23,9 +23,35 @@ const features = [
   { icon: <Zap className="h-5 w-5" />, title: 'Real-Time Messaging', desc: 'Negotiate deals and coordinate campaigns with built-in messaging per deal thread.' },
 ];
 
+const pricingItems = [
+  { label: 'Streamer Registration', value: 'Free', note: 'Create your profile, listings, and get discovered.' },
+  { label: 'Casino Registration', value: 'Free', note: 'Browse streamers, post campaigns, and initiate deals.' },
+  { label: 'Platform Fee', value: '8%', note: 'Applied to deal value when a deal is completed. Transparent and visible on every contract.' },
+];
+
+// JSON-LD structured data
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Castreamino",
+  "url": "https://castreamino.com",
+  "description": "The crypto-native marketplace connecting licensed casino operators with gambling content creators.",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD",
+    "description": "Free to register. 8% platform fee on completed deals."
+  },
+};
+
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
+      {/* JSON-LD */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+
       {/* Nav */}
       <header className="border-b border-border/60 bg-background/95 backdrop-blur-sm sticky top-0 z-40">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -69,7 +95,6 @@ const Index = () => {
               </Button>
             </Link>
           </div>
-          {/* Stats strip */}
           <div className="mt-20 grid grid-cols-1 sm:grid-cols-3 gap-px max-w-2xl mx-auto animate-fade-in rounded-xl overflow-hidden border border-white/8">
             {stats.map((s, i) => (
               <div key={i} className="bg-white/[0.03] px-6 py-5">
@@ -121,6 +146,24 @@ const Index = () => {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Pricing / Commission */}
+      <section className="container mx-auto px-4 py-24">
+        <div className="text-center mb-16">
+          <p className="text-xs font-semibold text-primary uppercase tracking-[0.2em] mb-3">Pricing</p>
+          <h2 className="text-3xl md:text-4xl font-bold">Simple, Transparent Pricing</h2>
+          <p className="mt-3 text-muted-foreground max-w-lg mx-auto">No hidden fees. Free to register. We only earn when you do.</p>
+        </div>
+        <div className="grid gap-6 md:grid-cols-3 max-w-3xl mx-auto">
+          {pricingItems.map((item, i) => (
+            <div key={i} className="rounded-2xl border border-border bg-card p-6 text-center shadow-card hover:shadow-elevated transition-all">
+              <p className="text-sm font-medium text-muted-foreground">{item.label}</p>
+              <p className="mt-2 text-4xl font-extrabold text-foreground">{item.value}</p>
+              <p className="mt-3 text-xs text-muted-foreground leading-relaxed">{item.note}</p>
+            </div>
+          ))}
         </div>
       </section>
 

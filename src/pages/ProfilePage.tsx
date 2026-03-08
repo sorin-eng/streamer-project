@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { StatusBadge } from '@/components/StatusBadge';
-import { Globe, Users, Eye, TrendingUp, Shield, Upload, FileCheck, AlertTriangle } from 'lucide-react';
+import { Globe, Users, TrendingUp, Shield, Upload, FileCheck, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRef } from 'react';
 
@@ -31,8 +31,9 @@ const KycSection = () => {
     try {
       await submitKyc.mutateAsync({ document_type: 'identity', file });
       toast({ title: 'Document submitted for review' });
-    } catch (err: any) {
-      toast({ title: 'Upload failed', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Upload failed', description: message, variant: 'destructive' });
     }
   };
 
@@ -128,8 +129,9 @@ const StreamerProfileView = () => {
         preferred_crypto: fd.get('preferred_crypto') as string || 'USDT',
       });
       toast({ title: 'Profile updated' });
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
 
@@ -190,27 +192,27 @@ const StreamerProfileView = () => {
               <div className="border-t border-border pt-4 mt-4">
                 <h3 className="font-semibold mb-3 flex items-center gap-2"><Globe className="h-4 w-4" />Platform Links</h3>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1"><Label className="text-xs">Twitch URL</Label><Input name="twitch_url" defaultValue={(profile as any)?.twitch_url || ''} placeholder="https://twitch.tv/..." /></div>
-                  <div className="space-y-1"><Label className="text-xs">Kick URL</Label><Input name="kick_url" defaultValue={(profile as any)?.kick_url || ''} placeholder="https://kick.com/..." /></div>
-                  <div className="space-y-1"><Label className="text-xs">YouTube URL</Label><Input name="youtube_url" defaultValue={(profile as any)?.youtube_url || ''} placeholder="https://youtube.com/..." /></div>
-                  <div className="space-y-1"><Label className="text-xs">TikTok URL</Label><Input name="tiktok_url" defaultValue={(profile as any)?.tiktok_url || ''} placeholder="https://tiktok.com/@..." /></div>
+                  <div className="space-y-1"><Label className="text-xs">Twitch URL</Label><Input name="twitch_url" defaultValue={profile?.twitch_url || ''} placeholder="https://twitch.tv/..." /></div>
+                  <div className="space-y-1"><Label className="text-xs">Kick URL</Label><Input name="kick_url" defaultValue={profile?.kick_url || ''} placeholder="https://kick.com/..." /></div>
+                  <div className="space-y-1"><Label className="text-xs">YouTube URL</Label><Input name="youtube_url" defaultValue={profile?.youtube_url || ''} placeholder="https://youtube.com/..." /></div>
+                  <div className="space-y-1"><Label className="text-xs">TikTok URL</Label><Input name="tiktok_url" defaultValue={profile?.tiktok_url || ''} placeholder="https://tiktok.com/@..." /></div>
                 </div>
               </div>
 
               <div className="border-t border-border pt-4 mt-4">
                 <h3 className="font-semibold mb-3 flex items-center gap-2"><Users className="h-4 w-4" />Social Media</h3>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1"><Label className="text-xs">Twitter / X</Label><Input name="twitter_url" defaultValue={(profile as any)?.twitter_url || ''} placeholder="https://x.com/..." /></div>
-                  <div className="space-y-1"><Label className="text-xs">Instagram</Label><Input name="instagram_url" defaultValue={(profile as any)?.instagram_url || ''} placeholder="https://instagram.com/..." /></div>
-                  <div className="space-y-1"><Label className="text-xs">Discord</Label><Input name="discord_url" defaultValue={(profile as any)?.discord_url || ''} placeholder="https://discord.gg/..." /></div>
+                  <div className="space-y-1"><Label className="text-xs">Twitter / X</Label><Input name="twitter_url" defaultValue={profile?.twitter_url || ''} placeholder="https://x.com/..." /></div>
+                  <div className="space-y-1"><Label className="text-xs">Instagram</Label><Input name="instagram_url" defaultValue={profile?.instagram_url || ''} placeholder="https://instagram.com/..." /></div>
+                  <div className="space-y-1"><Label className="text-xs">Discord</Label><Input name="discord_url" defaultValue={profile?.discord_url || ''} placeholder="https://discord.gg/..." /></div>
                 </div>
               </div>
 
               <div className="border-t border-border pt-4 mt-4">
                 <h3 className="font-semibold mb-3 flex items-center gap-2">💰 Crypto Payment</h3>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1"><Label className="text-xs">Wallet Address</Label><Input name="wallet_address" defaultValue={(profile as any)?.wallet_address || ''} placeholder="0x... or bc1..." /></div>
-                  <div className="space-y-1"><Label className="text-xs">Preferred Crypto</Label><Input name="preferred_crypto" defaultValue={(profile as any)?.preferred_crypto || 'USDT'} placeholder="USDT, BTC, ETH" /></div>
+                  <div className="space-y-1"><Label className="text-xs">Wallet Address</Label><Input name="wallet_address" defaultValue={profile?.wallet_address || ''} placeholder="0x... or bc1..." /></div>
+                  <div className="space-y-1"><Label className="text-xs">Preferred Crypto</Label><Input name="preferred_crypto" defaultValue={profile?.preferred_crypto || 'USDT'} placeholder="USDT, BTC, ETH" /></div>
                 </div>
               </div>
 
@@ -247,8 +249,9 @@ const CasinoProfileView = () => {
         marketing_guidelines: fd.get('marketing_guidelines') as string,
       });
       toast({ title: 'Profile updated' });
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
 

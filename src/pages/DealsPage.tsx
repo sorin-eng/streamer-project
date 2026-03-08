@@ -11,8 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import type { DealWithRelations, ApplicationWithProfile } from '@/types/supabase-joins';
 
-const DEAL_STATE_ORDER = ['negotiation', 'contract_pending', 'active', 'completed', 'cancelled'];
 const NEXT_STATES: Record<string, string> = {
   negotiation: 'contract_pending',
   contract_pending: 'active',
@@ -24,21 +24,18 @@ const DealsPage = () => {
   const { data: deals, isLoading } = useDeals();
   const { data: applications } = useApplications();
   const updateAppStatus = useUpdateApplicationStatus();
-  const createDeal = useCreateDeal();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [transitioning, setTransitioning] = useState<string | null>(null);
   const [showApps, setShowApps] = useState(false);
 
   const isCasino = user?.role === 'casino_manager';
-  const pendingApps = applications?.filter(a => a.status === 'pending') || [];
+  const pendingApps = (applications || []).filter(a => a.status === 'pending');
 
-  const handleAcceptApplication = async (app: any) => {
+  const handleAcceptApplication = async (app: ApplicationWithProfile) => {
     try {
-      // Update application status
       await updateAppStatus.mutateAsync({ id: app.id, status: 'accepted' });
 
-      // Auto-create deal
       const campaign = await supabase
         .from('campaigns')
         .select('id, organization_id, deal_type, budget')
@@ -60,7 +57,6 @@ const DealsPage = () => {
           .single();
 
         if (deal) {
-          // Create contract stub
           await supabase.from('contracts').insert({
             deal_id: deal.id,
             title: `Contract for ${app.campaign_id.slice(0, 8)}`,
@@ -69,10 +65,9 @@ const DealsPage = () => {
               value: campaign.data.budget || 0,
               auto_generated: true,
             },
-            status: 'draft' as any,
+            status: 'draft',
           });
 
-          // Log state
           await supabase.from('deal_state_log').insert({
             deal_id: deal.id,
             to_state: 'negotiation',
@@ -85,6 +80,18 @@ const DealsPage = () => {
             _entity_id: deal.id,
             _details: { application_id: app.id, campaign_id: app.campaign_id },
           });
+
+          // Notify
+          await supabase.functions.invoke('notify', {
+            body: {
+              event_type: 'application_accepted',
+              deal_id: deal.id,
+              title: 'Application accepted',
+              body: 'Your application has been accepted and a deal has been created.',
+              entity_type: 'deal',
+              entity_id: deal.id,
+            },
+          }).catch(() => {});
         }
       }
 
@@ -92,8 +99,9 @@ const DealsPage = () => {
       qc.invalidateQueries({ queryKey: ['deals'] });
       qc.invalidateQueries({ queryKey: ['applications'] });
       qc.invalidateQueries({ queryKey: ['contracts'] });
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
 
@@ -101,8 +109,9 @@ const DealsPage = () => {
     try {
       await updateAppStatus.mutateAsync({ id: appId, status: 'rejected' });
       toast({ title: 'Application rejected' });
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
 
@@ -132,9 +141,8 @@ const DealsPage = () => {
         changed_by: user!.id,
       });
 
-      // If moving to contract_pending, update contract to pending_signature
       if (nextState === 'contract_pending') {
-        await supabase.from('contracts').update({ status: 'pending_signature' as any }).eq('deal_id', dealId);
+        await supabase.from('contracts').update({ status: 'pending_signature' }).eq('deal_id', dealId);
       }
 
       await supabase.rpc('log_audit', {
@@ -144,11 +152,23 @@ const DealsPage = () => {
         _details: { from: currentState, to: nextState },
       });
 
+      // Notify
+      await supabase.functions.invoke('notify', {
+        body: {
+          event_type: 'deal_state_change',
+          deal_id: dealId,
+          title: `Deal moved to ${nextState.replace('_', ' ')}`,
+          entity_type: 'deal',
+          entity_id: dealId,
+        },
+      }).catch(() => {});
+
       toast({ title: `Deal moved to ${nextState.replace('_', ' ')}` });
       qc.invalidateQueries({ queryKey: ['deals'] });
       qc.invalidateQueries({ queryKey: ['contracts'] });
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     }
     setTransitioning(null);
   };
@@ -180,7 +200,7 @@ const DealsPage = () => {
           />
         ) : (
           <div className="space-y-4">
-            {deals.map(deal => {
+            {deals.map((deal: DealWithRelations) => {
               const nextState = NEXT_STATES[deal.state];
               return (
                 <div key={deal.id} className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-elevated transition-all">
@@ -190,9 +210,9 @@ const DealsPage = () => {
                         <Handshake className="h-5 w-5" />
                       </div>
                       <div>
-                        <h3 className="font-semibold">{(deal.campaigns as any)?.title || `Direct Deal`}</h3>
+                        <h3 className="font-semibold">{deal.campaigns?.title || 'Direct Deal'}</h3>
                         <p className="text-sm text-muted-foreground">
-                          {user?.role === 'streamer' ? (deal.organizations as any)?.name : (deal.profiles as any)?.display_name}
+                          {user?.role === 'streamer' ? deal.organizations?.name : deal.profiles?.display_name}
                         </p>
                       </div>
                     </div>
@@ -203,7 +223,7 @@ const DealsPage = () => {
                   </div>
                   <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1"><DollarSign className="h-3.5 w-3.5" />${Number(deal.value).toLocaleString()}</span>
-                    <span className="flex items-center gap-1 text-xs bg-muted rounded-full px-2 py-0.5">Platform fee: {(deal as any).platform_fee_pct ?? 8}%</span>
+                    <span className="flex items-center gap-1 text-xs bg-muted rounded-full px-2 py-0.5">Platform fee: {deal.platform_fee_pct}%</span>
                     {deal.start_date && <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{deal.start_date} → {deal.end_date}</span>}
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
@@ -238,17 +258,17 @@ const DealsPage = () => {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader><DialogTitle>Pending Applications</DialogTitle></DialogHeader>
           <div className="space-y-3 max-h-96 overflow-y-auto">
-            {pendingApps.map(app => (
+            {pendingApps.map((app: ApplicationWithProfile) => (
               <div key={app.id} className="rounded-lg border border-border p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground">
-                      {(app.profiles as any)?.display_name?.[0] || '?'}
+                      {app.profiles?.display_name?.[0] || '?'}
                     </div>
                     <div>
-                      <p className="font-medium text-sm">{(app.profiles as any)?.display_name || 'Streamer'}</p>
+                      <p className="font-medium text-sm">{app.profiles?.display_name || 'Streamer'}</p>
                       <p className="text-xs text-muted-foreground">
-                        {(app.streamer_profiles as any)?.avg_live_viewers || 0} avg viewers · {(app.streamer_profiles as any)?.follower_count?.toLocaleString() || 0} followers
+                        {app.streamer_profiles?.avg_live_viewers || 0} avg viewers · {app.streamer_profiles?.follower_count?.toLocaleString() || 0} followers
                       </p>
                     </div>
                   </div>
