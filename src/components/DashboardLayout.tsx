@@ -8,6 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ComplianceBypassBanner } from '@/components/ComplianceBypassBanner';
+import { useUnreadDeals } from '@/hooks/useSupabaseData';
 
 const navByRole: Record<string, { to: string; label: string; icon: any }[]> = {
   casino_manager: [
