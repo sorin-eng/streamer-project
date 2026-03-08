@@ -8,9 +8,9 @@ import { EmptyState } from '@/components/EmptyState';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Search, Users, Globe, DollarSign, ExternalLink, MessageSquare } from 'lucide-react';
+import { Search, Users, Globe, DollarSign, ExternalLink, MessageSquare, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const StreamersPage = () => {
   const { data: streamers, isLoading } = useBrowseStreamers();
