@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Megaphone, Plus, Search, Globe, Clock, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { CampaignWithOrg } from '@/types/supabase-joins';
+import { CampaignsSkeleton } from '@/components/PageSkeletons';
 
 const CampaignsPage = () => {
   const { user } = useAuth();
@@ -114,7 +115,7 @@ const CampaignsPage = () => {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
+          <CampaignsSkeleton />
         ) : !campaigns?.length ? (
           <EmptyState icon={<Megaphone className="h-6 w-6" />} title="No campaigns found" description={isCasino ? "Create your first campaign to attract streamers." : "Try adjusting your search or check back later."} />
         ) : (

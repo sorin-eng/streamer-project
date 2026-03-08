@@ -8,6 +8,7 @@ import { RouteGuard, PublicRoute } from "@/components/RouteGuard";
 import { ComplianceGate } from "@/components/ComplianceGate";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
@@ -34,6 +35,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <ErrorBoundary>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
@@ -58,6 +60,7 @@ const App = () => (
             <Route path="/compliance" element={<CompliancePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </ErrorBoundary>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

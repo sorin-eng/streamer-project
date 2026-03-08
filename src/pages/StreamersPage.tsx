@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate, Link } from 'react-router-dom';
 import type { StreamerWithProfile } from '@/types/supabase-joins';
 import type { Tables } from '@/integrations/supabase/types';
+import { StreamersSkeleton } from '@/components/PageSkeletons';
 
 const StreamersPage = () => {
   const { data: streamers, isLoading } = useBrowseStreamers();
@@ -71,7 +72,7 @@ const StreamersPage = () => {
           </div>
         </div>
 
-        {isLoading && <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}
+        {isLoading && <StreamersSkeleton />}
 
         {!isLoading && filtered.length === 0 && (
           <EmptyState icon={<Users className="h-12 w-12" />} title="No streamers found" description="Try adjusting your search or filters" />
