@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Radio, Building2, Video, AlertCircle } from 'lucide-react';
+import { Radio, Building2, Video, AlertCircle, CheckCircle2, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type SignupRole = 'casino_manager' | 'streamer';
