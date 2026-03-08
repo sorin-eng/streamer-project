@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { DealWithRelations, ApplicationWithProfile } from '@/types/supabase-joins';
+import { DealsSkeleton } from '@/components/PageSkeletons';
 
 const NEXT_STATES: Record<string, string> = {
   negotiation: 'contract_pending',

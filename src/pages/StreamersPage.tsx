@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate, Link } from 'react-router-dom';
 import type { StreamerWithProfile } from '@/types/supabase-joins';
 import type { Tables } from '@/integrations/supabase/types';
+import { StreamersSkeleton } from '@/components/PageSkeletons';
 
 const StreamersPage = () => {
   const { data: streamers, isLoading } = useBrowseStreamers();

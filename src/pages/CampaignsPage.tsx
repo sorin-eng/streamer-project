@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Megaphone, Plus, Search, Globe, Clock, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { CampaignWithOrg } from '@/types/supabase-joins';
+import { CampaignsSkeleton } from '@/components/PageSkeletons';
 
 const CampaignsPage = () => {
   const { user } = useAuth();

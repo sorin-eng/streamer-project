@@ -166,7 +166,7 @@ export const AdminAuditPage = () => {
           <p className="text-sm text-muted-foreground">Track all platform activity</p>
         </div>
         {isLoading ? (
-          <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
+          <TableSkeleton rows={8} />
         ) : (
           <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
             <table className="w-full text-sm">
@@ -179,10 +179,10 @@ export const AdminAuditPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {(logs || []).map(log => (
+                {(logs || []).map((log: AuditLogWithProfile) => (
                   <tr key={log.id} className="hover:bg-muted/50 transition-colors">
                     <td className="px-4 py-3 text-muted-foreground text-xs font-mono">{new Date(log.created_at).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-xs">{(log.profiles as any)?.display_name || 'System'}</td>
+                    <td className="px-4 py-3 text-xs">{log.profiles?.display_name || 'System'}</td>
                     <td className="px-4 py-3"><span className="inline-flex rounded bg-accent px-2 py-0.5 text-xs font-mono text-accent-foreground">{log.action}</span></td>
                     <td className="px-4 py-3 text-xs text-muted-foreground max-w-xs truncate">{JSON.stringify(log.details)}</td>
                   </tr>

@@ -60,6 +60,7 @@ const App = () => (
             <Route path="/compliance" element={<CompliancePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </ErrorBoundary>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
