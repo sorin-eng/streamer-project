@@ -358,16 +358,19 @@ export function useDashboardStats() {
       }
 
       // Admin
-      const [profileCount, campaignCount, dealCount] = await Promise.all([
+      const [profileCount, campaignCount, dealData] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact' }),
         supabase.from('campaigns').select('id', { count: 'exact' }),
-        supabase.from('deals').select('id, value', { count: 'exact' }),
+        supabase.from('deals').select('id, value, platform_fee_pct', { count: 'exact' }),
       ]);
+      const platformRevenue = (dealData.data || []).reduce((sum, d) => {
+        return sum + Number(d.value) * (Number((d as any).platform_fee_pct ?? 8) / 100);
+      }, 0);
       return {
         totalUsers: profileCount.count || 0,
         totalCampaigns: campaignCount.count || 0,
-        totalDeals: dealCount.count || 0,
-        platformRevenue: 0,
+        totalDeals: dealData.count || 0,
+        platformRevenue: Math.round(platformRevenue * 100) / 100,
       };
     },
   });

@@ -8,9 +8,9 @@ import { EmptyState } from '@/components/EmptyState';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Search, Users, Globe, DollarSign, ExternalLink, MessageSquare } from 'lucide-react';
+import { Search, Users, Globe, DollarSign, ExternalLink, MessageSquare, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const StreamersPage = () => {
   const { data: streamers, isLoading } = useBrowseStreamers();
@@ -78,18 +78,18 @@ const StreamersPage = () => {
           {filtered.map(streamer => (
             <div key={streamer.id} className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-elevated transition-all space-y-4">
               {/* Header */}
-              <div className="flex items-center gap-3">
+              <Link to={`/streamers/${streamer.user_id}`} className="flex items-center gap-3 group">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-brand text-lg font-bold text-primary-foreground shrink-0">
                   {(streamer.profiles as any)?.display_name?.[0]?.toUpperCase() || '?'}
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-semibold truncate">{(streamer.profiles as any)?.display_name || 'Streamer'}</h3>
+                  <h3 className="font-semibold truncate group-hover:text-primary transition-colors">{(streamer.profiles as any)?.display_name || 'Streamer'}</h3>
                   <div className="flex items-center gap-2">
                     {streamer.verified === 'approved' && <StatusBadge status="approved" />}
                     {streamer.niche_type && <span className="text-xs text-muted-foreground">{streamer.niche_type}</span>}
                   </div>
                 </div>
-              </div>
+              </Link>
 
               {/* Stats */}
               <div className="grid grid-cols-3 gap-2 text-center">
