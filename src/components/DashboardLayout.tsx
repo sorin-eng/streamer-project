@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard, Megaphone, Handshake, MessageSquare, FileText,
-  BarChart3, Shield, Users, Settings, LogOut, Menu, X, Zap
+  BarChart3, Shield, Users, Settings, LogOut, Menu, X, Radio
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -64,11 +64,11 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
         "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar border-r border-sidebar-border transition-transform duration-200 lg:static lg:translate-x-0",
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand">
-            <Zap className="h-4 w-4 text-primary-foreground" />
+        <div className="flex h-16 items-center gap-2.5 border-b border-sidebar-border px-6">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand shadow-glow">
+            <Radio className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="text-lg font-bold text-sidebar-accent-foreground">BrokerHub</span>
+          <span className="text-lg font-bold text-sidebar-accent-foreground" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Castreamino</span>
           <button className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5 text-sidebar-foreground" />
           </button>
@@ -98,7 +98,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
         <div className="border-t border-sidebar-border p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-accent text-sm font-semibold text-sidebar-primary">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-brand text-sm font-semibold text-primary-foreground">
               {user.displayName[0]?.toUpperCase() || '?'}
             </div>
             <div className="flex-1 min-w-0">

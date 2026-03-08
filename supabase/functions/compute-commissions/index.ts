@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
       _entity_id: deal_id,
       _details: {
         commissions_created: commissions.length,
-        total_amount: commissions.reduce((s, c) => s + c.amount, 0),
+        total_amount: commissions.reduce((s: number, c: any) => s + c.amount, 0),
         period_start,
         period_end,
       },

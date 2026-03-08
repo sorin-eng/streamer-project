@@ -72,7 +72,6 @@ export const ComplianceGate: React.FC<ComplianceGateProps> = ({ children, requir
     }
   };
 
-  // KYC hard gate
   if (requireKyc && compliance?.kyc_status !== 'verified') {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center animate-fade-in">
@@ -98,7 +97,6 @@ export const ComplianceGate: React.FC<ComplianceGateProps> = ({ children, requir
 
   return (
     <>
-      {/* Age Gate Dialog */}
       <Dialog open={showAgeGate} onOpenChange={() => {}}>
         <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
           <DialogHeader>
@@ -139,7 +137,6 @@ export const ComplianceGate: React.FC<ComplianceGateProps> = ({ children, requir
         </DialogContent>
       </Dialog>
 
-      {/* Disclaimers Dialog */}
       <Dialog open={showDisclaimers && !showAgeGate} onOpenChange={() => {}}>
         <DialogContent className="sm:max-w-lg" onPointerDownOutside={(e) => e.preventDefault()}>
           <DialogHeader>
@@ -151,7 +148,7 @@ export const ComplianceGate: React.FC<ComplianceGateProps> = ({ children, requir
           <div className="space-y-4">
             <div className="rounded-lg border border-border bg-muted p-4 space-y-3 max-h-60 overflow-y-auto text-sm text-muted-foreground">
               <p className="font-semibold text-foreground">Platform Disclaimer</p>
-              <p>BrokerHub is a B2B brokerage platform. It does NOT operate gambling services, does NOT process bets, and does NOT function as a casino.</p>
+              <p>Castreamino is a B2B brokerage platform. It does NOT operate gambling services, does NOT process bets, and does NOT function as a casino.</p>
               <p>By using this platform you agree to:</p>
               <ul className="list-disc pl-4 space-y-1">
                 <li>The <Link to="/terms" className="text-primary underline">Terms of Service</Link> (v1.0)</li>

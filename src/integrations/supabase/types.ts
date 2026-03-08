@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      age_verifications: {
+        Row: {
+          created_at: string
+          date_of_birth: string
+          id: string
+          jurisdiction: string | null
+          min_age_required: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date_of_birth: string
+          id?: string
+          jurisdiction?: string | null
+          min_age_required?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date_of_birth?: string
+          id?: string
+          jurisdiction?: string | null
+          min_age_required?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       applications: {
         Row: {
           campaign_id: string
@@ -322,6 +349,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      compliance_events: {
+        Row: {
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_type: string | null
+          event_type: string
+          id: string
+          severity: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type: string
+          id?: string
+          severity?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type?: string
+          id?: string
+          severity?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       contracts: {
         Row: {
@@ -641,6 +701,60 @@ export type Database = {
           },
         ]
       }
+      disclaimer_acceptances: {
+        Row: {
+          created_at: string
+          disclaimer_type: string
+          disclaimer_version: string
+          id: string
+          ip_address: unknown
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          disclaimer_type: string
+          disclaimer_version?: string
+          id?: string
+          ip_address?: unknown
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          disclaimer_type?: string
+          disclaimer_version?: string
+          id?: string
+          ip_address?: unknown
+          user_id?: string
+        }
+        Relationships: []
+      }
+      geo_restrictions: {
+        Row: {
+          blocked_country: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          blocked_country: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          blocked_country?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       organization_members: {
         Row: {
           created_at: string
@@ -784,6 +898,7 @@ export type Database = {
           created_at: string
           display_name: string
           id: string
+          kyc_status: string
           updated_at: string
           user_id: string
         }
@@ -792,6 +907,7 @@ export type Database = {
           created_at?: string
           display_name?: string
           id?: string
+          kyc_status?: string
           updated_at?: string
           user_id: string
         }
@@ -800,6 +916,7 @@ export type Database = {
           created_at?: string
           display_name?: string
           id?: string
+          kyc_status?: string
           updated_at?: string
           user_id?: string
         }
@@ -998,11 +1115,97 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_deliveries: {
+        Row: {
+          attempts: number
+          created_at: string
+          delivered_at: string | null
+          endpoint_id: string
+          event_type: string
+          id: string
+          next_retry_at: string | null
+          payload: Json
+          response_body: string | null
+          response_status: number | null
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          delivered_at?: string | null
+          endpoint_id: string
+          event_type: string
+          id?: string
+          next_retry_at?: string | null
+          payload?: Json
+          response_body?: string | null
+          response_status?: number | null
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          delivered_at?: string | null
+          endpoint_id?: string
+          event_type?: string
+          id?: string
+          next_retry_at?: string | null
+          payload?: Json
+          response_body?: string | null
+          response_status?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_deliveries_endpoint_id_fkey"
+            columns: ["endpoint_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_endpoints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_endpoints: {
+        Row: {
+          active: boolean
+          created_at: string
+          events: string[]
+          id: string
+          organization_id: string
+          secret: string
+          url: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          events?: string[]
+          id?: string
+          organization_id: string
+          secret?: string
+          url: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          events?: string[]
+          id?: string
+          organization_id?: string
+          secret?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_endpoints_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      check_user_compliance: { Args: { _user_id: string }; Returns: Json }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1020,6 +1223,16 @@ export type Database = {
           _details?: Json
           _entity_id?: string
           _entity_type?: string
+        }
+        Returns: string
+      }
+      log_compliance_event: {
+        Args: {
+          _details?: Json
+          _entity_id?: string
+          _entity_type?: string
+          _event_type: string
+          _severity?: string
         }
         Returns: string
       }
