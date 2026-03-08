@@ -12,6 +12,7 @@ import { ComplianceBypassBanner } from '@/components/ComplianceBypassBanner';
 const navByRole: Record<string, { to: string; label: string; icon: any }[]> = {
   casino_manager: [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/streamers', label: 'Browse Streamers', icon: Search },
     { to: '/campaigns', label: 'Campaigns', icon: Megaphone },
     { to: '/deals', label: 'Deals', icon: Handshake },
     { to: '/contracts', label: 'Contracts', icon: FileText },
@@ -21,6 +22,7 @@ const navByRole: Record<string, { to: string; label: string; icon: any }[]> = {
   ],
   streamer: [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/listings', label: 'My Listings', icon: Tag },
     { to: '/campaigns', label: 'Browse Campaigns', icon: Megaphone },
     { to: '/deals', label: 'My Deals', icon: Handshake },
     { to: '/contracts', label: 'Contracts', icon: FileText },
@@ -30,6 +32,7 @@ const navByRole: Record<string, { to: string; label: string; icon: any }[]> = {
   ],
   admin: [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/streamers', label: 'Browse Streamers', icon: Search },
     { to: '/admin/verifications', label: 'Verifications', icon: Shield },
     { to: '/admin/users', label: 'Users', icon: Users },
     { to: '/campaigns', label: 'Campaigns', icon: Megaphone },

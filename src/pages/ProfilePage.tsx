@@ -183,6 +183,34 @@ const StreamerProfileView = () => {
             <div className="space-y-4">
               <div className="space-y-2"><Label>Bio</Label><Textarea name="bio" defaultValue={profile?.bio || ''} rows={3} /></div>
               <div className="space-y-2"><Label>Platforms</Label><div className="flex gap-2">{(profile?.platforms || []).map(p => <span key={p} className="inline-flex items-center rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">{p}</span>)}</div></div>
+              
+              <div className="border-t border-border pt-4 mt-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2"><Globe className="h-4 w-4" />Platform Links</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1"><Label className="text-xs">Twitch URL</Label><Input name="twitch_url" defaultValue={(profile as any)?.twitch_url || ''} placeholder="https://twitch.tv/..." /></div>
+                  <div className="space-y-1"><Label className="text-xs">Kick URL</Label><Input name="kick_url" defaultValue={(profile as any)?.kick_url || ''} placeholder="https://kick.com/..." /></div>
+                  <div className="space-y-1"><Label className="text-xs">YouTube URL</Label><Input name="youtube_url" defaultValue={(profile as any)?.youtube_url || ''} placeholder="https://youtube.com/..." /></div>
+                  <div className="space-y-1"><Label className="text-xs">TikTok URL</Label><Input name="tiktok_url" defaultValue={(profile as any)?.tiktok_url || ''} placeholder="https://tiktok.com/@..." /></div>
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-4 mt-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2"><Users className="h-4 w-4" />Social Media</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1"><Label className="text-xs">Twitter / X</Label><Input name="twitter_url" defaultValue={(profile as any)?.twitter_url || ''} placeholder="https://x.com/..." /></div>
+                  <div className="space-y-1"><Label className="text-xs">Instagram</Label><Input name="instagram_url" defaultValue={(profile as any)?.instagram_url || ''} placeholder="https://instagram.com/..." /></div>
+                  <div className="space-y-1"><Label className="text-xs">Discord</Label><Input name="discord_url" defaultValue={(profile as any)?.discord_url || ''} placeholder="https://discord.gg/..." /></div>
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-4 mt-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">💰 Crypto Payment</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1"><Label className="text-xs">Wallet Address</Label><Input name="wallet_address" defaultValue={(profile as any)?.wallet_address || ''} placeholder="0x... or bc1..." /></div>
+                  <div className="space-y-1"><Label className="text-xs">Preferred Crypto</Label><Input name="preferred_crypto" defaultValue={(profile as any)?.preferred_crypto || 'USDT'} placeholder="USDT, BTC, ETH" /></div>
+                </div>
+              </div>
+
               <div className="space-y-2"><Label>Audience Geo</Label><Input name="audience_geo" defaultValue={(profile?.audience_geo || []).join(', ')} /></div>
               <div className="space-y-2"><Label>Payment Preference</Label><Input name="payment_preference" defaultValue={profile?.payment_preference || ''} /></div>
               <div className="space-y-2"><Label>Restricted Countries</Label><Input name="restricted_countries" defaultValue={(profile?.restricted_countries || []).join(', ')} /></div>

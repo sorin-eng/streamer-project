@@ -16,6 +16,8 @@ import DealsPage from "./pages/DealsPage";
 import MessagesPage from "./pages/MessagesPage";
 import ReportsPage from "./pages/ReportsPage";
 import ProfilePage from "./pages/ProfilePage";
+import ListingsPage from "./pages/ListingsPage";
+import StreamersPage from "./pages/StreamersPage";
 import { AdminVerificationsPage, AdminUsersPage, AdminAuditPage } from "./pages/AdminPages";
 import { TermsPage, PrivacyPage, CompliancePage } from "./pages/LegalPages";
 import ContractPage from "./pages/ContractPage";
@@ -39,6 +41,8 @@ const App = () => (
             <Route path="/messages" element={<RouteGuard><ComplianceGate><MessagesPage /></ComplianceGate></RouteGuard>} />
             <Route path="/reports" element={<RouteGuard><ComplianceGate><ReportsPage /></ComplianceGate></RouteGuard>} />
             <Route path="/profile" element={<RouteGuard allowedRoles={['casino_manager', 'streamer']}><ComplianceGate><ProfilePage /></ComplianceGate></RouteGuard>} />
+            <Route path="/listings" element={<RouteGuard allowedRoles={['streamer']}><ComplianceGate><ListingsPage /></ComplianceGate></RouteGuard>} />
+            <Route path="/streamers" element={<RouteGuard allowedRoles={['casino_manager', 'admin']}><ComplianceGate><StreamersPage /></ComplianceGate></RouteGuard>} />
             <Route path="/admin/verifications" element={<RouteGuard allowedRoles={['admin']}><AdminVerificationsPage /></RouteGuard>} />
             <Route path="/admin/users" element={<RouteGuard allowedRoles={['admin']}><AdminUsersPage /></RouteGuard>} />
             <Route path="/admin/audit" element={<RouteGuard allowedRoles={['admin']}><AdminAuditPage /></RouteGuard>} />

@@ -130,9 +130,9 @@ const Index = () => {
           <div className="rounded-2xl border border-primary/15 bg-primary/[0.03] p-8 lg:p-10">
             <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">For Casinos</span>
             <h3 className="mt-4 text-2xl font-bold">Find Your Next Top Streamer</h3>
-            <p className="mt-2 text-muted-foreground text-sm leading-relaxed">Post campaigns, browse verified streamers, and manage partnerships—all with built-in compliance and transparent commission tracking.</p>
+            <p className="mt-2 text-muted-foreground text-sm leading-relaxed">Browse verified streamers with public listings, view their stats, and reach out directly — all with built-in compliance and transparent tracking.</p>
             <ul className="mt-5 space-y-2.5 text-sm text-muted-foreground">
-              {['Post unlimited campaigns', 'Browse verified streamer profiles', 'Automated commission calculations', 'Full audit trail'].map(item => (
+              {['Browse streamers with live pricing', 'Filter by platform, geo & viewers', 'Crypto-native payments', 'Full audit trail'].map(item => (
                 <li key={item} className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" />{item}</li>
               ))}
             </ul>
@@ -142,10 +142,10 @@ const Index = () => {
           </div>
           <div className="rounded-2xl border border-accent/15 bg-accent/[0.03] p-8 lg:p-10">
             <span className="inline-flex items-center rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent-foreground">For Streamers</span>
-            <h3 className="mt-4 text-2xl font-bold">Monetize Your Audience</h3>
-            <p className="mt-2 text-muted-foreground text-sm leading-relaxed">Apply to campaigns from licensed casinos, negotiate terms, sign contracts, and track your earnings—all in one platform.</p>
+            <h3 className="mt-4 text-2xl font-bold">List Your Services, Get Paid in Crypto</h3>
+            <p className="mt-2 text-muted-foreground text-sm leading-relaxed">Create your profile, post listings with your pricing, and let casinos come to you. Receive payments in USDT, BTC, or ETH.</p>
             <ul className="mt-5 space-y-2.5 text-sm text-muted-foreground">
-              {['Browse open campaigns', 'Transparent deal terms', 'Real-time earnings dashboard', 'Multi-platform support'].map(item => (
+              {['Set your own prices in crypto', 'Showcase stats from Twitch, Kick & YouTube', 'Get contacted by verified casinos', 'Multi-platform support'].map(item => (
                 <li key={item} className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-accent shrink-0" />{item}</li>
               ))}
             </ul>
