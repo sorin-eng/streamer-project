@@ -26,6 +26,7 @@ import StreamerDetailPage from "./pages/StreamerDetailPage";
 import { AdminVerificationsPage, AdminUsersPage, AdminAuditPage } from "./pages/AdminPages";
 import { TermsPage, PrivacyPage, CompliancePage } from "./pages/LegalPages";
 import ContractPage from "./pages/ContractPage";
+import SettingsPage from "./pages/SettingsPage";
 
 const queryClient = new QueryClient();
 
