@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Shield, Handshake, BarChart3, Play, Radio, Users, FileText, DollarSign, Zap, Globe, CheckCircle2 } from 'lucide-react';
 
 const stats = [
-  { value: '$2.1B+', label: 'Streamer Marketing Spend (2025)' },
-  { value: '14K+', label: 'Active Casino Streamers' },
-  { value: '340M+', label: 'Monthly Gambling Stream Views' },
+  { value: '$480M+', label: 'Streamer Marketing Spend (2025)' },
+  { value: '2,800+', label: 'Active Casino Streamers' },
+  { value: '85M+', label: 'Monthly Gambling Stream Views' },
 ];
 
 const steps = [
@@ -27,14 +27,14 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
-      <header className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-40">
+      <header className="border-b border-border bg-background sticky top-0 z-40">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2.5">
+          <Link to="/" className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-brand shadow-glow">
               <Radio className="h-4.5 w-4.5 text-primary-foreground" />
             </div>
             <span className="text-lg font-bold tracking-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Castreamino</span>
-          </div>
+          </Link>
           <div className="flex items-center gap-3">
             <Link to="/login"><Button variant="ghost" size="sm">Sign In</Button></Link>
             <Link to="/signup"><Button size="sm" className="bg-gradient-brand hover:opacity-90 shadow-glow">Get Started</Button></Link>
@@ -43,29 +43,28 @@ const Index = () => {
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-dark opacity-60" />
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, hsl(263, 70%, 58%) 0%, transparent 50%), radial-gradient(circle at 70% 80%, hsl(40, 96%, 53%) 0%, transparent 40%)' }} />
+      <section className="relative overflow-hidden bg-sidebar-background">
+        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 30% 40%, hsl(263, 70%, 50%) 0%, transparent 45%), radial-gradient(circle at 75% 70%, hsl(40, 96%, 45%) 0%, transparent 35%)' }} />
         <div className="container relative mx-auto px-4 py-28 lg:py-40 text-center">
-          <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary mb-6 animate-fade-in">
+          <div className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-medium text-primary mb-6 animate-fade-in">
             <Radio className="mr-2 h-3 w-3" />
             Casino × Streamer Partnership Platform
           </div>
-          <h1 className="text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tight animate-slide-up leading-[1.1]">
+          <h1 className="text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tight animate-slide-up leading-[1.1] text-white">
             Where <span className="text-gradient-brand">Casinos</span> Meet{' '}
             <span className="text-gradient-accent">Streamers</span>
           </h1>
-          <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto animate-slide-up">
+          <p className="mt-6 text-lg md:text-xl text-white/70 max-w-2xl mx-auto animate-slide-up">
             The marketplace for brokering partnerships between licensed online casino operators and gambling content creators. Transparent deals, verified partners, compliant campaigns.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up">
             <Link to="/signup">
-              <Button size="lg" className="bg-gradient-brand hover:opacity-90 text-base px-8 shadow-glow">
+              <Button size="lg" className="bg-gradient-brand hover:opacity-90 text-base px-10 py-3 shadow-glow">
                 Start Free <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
             <Link to="/login">
-              <Button size="lg" variant="outline" className="text-base px-8 border-primary/30 hover:border-primary/60">
+              <Button size="lg" variant="outline" className="text-base px-10 py-3 border-white/20 text-white hover:bg-white/10 hover:text-white">
                 Demo Access
               </Button>
             </Link>
@@ -73,9 +72,9 @@ const Index = () => {
           {/* Stats strip */}
           <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto animate-fade-in">
             {stats.map((s, i) => (
-              <div key={i} className="rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm p-4">
+              <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-5">
                 <p className="text-2xl md:text-3xl font-bold text-gradient-brand">{s.value}</p>
-                <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
+                <p className="text-xs text-white/50 mt-1.5">{s.label}</p>
               </div>
             ))}
           </div>
@@ -161,12 +160,12 @@ const Index = () => {
       <footer className="border-t border-border bg-card py-10">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2.5">
+            <Link to="/" className="flex items-center gap-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-brand">
                 <Radio className="h-3.5 w-3.5 text-primary-foreground" />
               </div>
               <span className="text-sm font-bold" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Castreamino</span>
-            </div>
+            </Link>
             <div className="flex gap-6 text-xs text-muted-foreground">
               <Link to="/terms" className="hover:text-foreground transition-colors">Terms</Link>
               <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
