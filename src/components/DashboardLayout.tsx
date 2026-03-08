@@ -8,6 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ComplianceBypassBanner } from '@/components/ComplianceBypassBanner';
+import { useUnreadDeals } from '@/hooks/useSupabaseData';
 
 const navByRole: Record<string, { to: string; label: string; icon: any }[]> = {
   casino_manager: [
@@ -47,6 +48,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { data: unreadCount } = useUnreadDeals();
 
   if (!user) return null;
 
@@ -96,6 +98,11 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
               >
                 <item.icon className="h-4 w-4" />
                 {item.label}
+                {(item.to === '/deals' || item.to === '/messages') && (unreadCount ?? 0) > 0 && (
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground px-1">
+                    {unreadCount}
+                  </span>
+                )}
               </Link>
             );
           })}
