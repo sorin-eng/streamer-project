@@ -123,7 +123,7 @@ export const AdminUsersPage = () => {
           <p className="text-sm text-muted-foreground">All registered users on the platform</p>
         </div>
         {isLoading ? (
-          <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
+          <TableSkeleton rows={6} />
         ) : (
           <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
             <table className="w-full text-sm">
@@ -136,13 +136,13 @@ export const AdminUsersPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {(profiles || []).map(p => (
+                {(profiles || []).map((p: ProfileWithRole) => (
                   <tr key={p.id} className="hover:bg-muted/50 transition-colors">
                     <td className="px-4 py-3">
                       <p className="font-medium">{p.display_name}</p>
                     </td>
-                    <td className="px-4 py-3 capitalize">{(p.user_roles as any)?.[0]?.role?.replace('_', ' ') || 'N/A'}</td>
-                    <td className="px-4 py-3"><StatusBadge status={(p as any).kyc_status || 'unverified'} /></td>
+                    <td className="px-4 py-3 capitalize">{p.user_roles?.[0]?.role?.replace('_', ' ') || 'N/A'}</td>
+                    <td className="px-4 py-3"><StatusBadge status={p.kyc_status || 'unverified'} /></td>
                     <td className="px-4 py-3 text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))}
