@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { StatCard } from '@/components/StatCard';
@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import type { DealWithRelations, CommissionWithDeal } from '@/types/supabase-joins';
 
 const ReportsPage = () => {
   const { user } = useAuth();
@@ -61,8 +62,9 @@ const ReportsPage = () => {
       setCsvData('');
       qc.invalidateQueries({ queryKey: ['report_uploads'] });
       qc.invalidateQueries({ queryKey: ['commissions'] });
-    } catch (err: any) {
-      toast({ title: 'Upload failed', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Upload failed', description: message, variant: 'destructive' });
     }
     setUploading(false);
   };
@@ -87,8 +89,9 @@ const ReportsPage = () => {
       });
       setComputeOpen(false);
       qc.invalidateQueries({ queryKey: ['commissions'] });
-    } catch (err: any) {
-      toast({ title: 'Computation failed', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Computation failed', description: message, variant: 'destructive' });
     }
     setComputing(false);
   };
@@ -153,9 +156,9 @@ const ReportsPage = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {commissions.map(c => (
+                  {commissions.map((c: CommissionWithDeal) => (
                     <tr key={c.id}>
-                      <td className="py-3 font-medium">{(c.deals as any)?.campaigns?.title || 'Direct Deal'}</td>
+                      <td className="py-3 font-medium">{c.deals?.campaigns?.title || 'Direct Deal'}</td>
                       <td className="py-3">${Number(c.amount).toLocaleString()}</td>
                       <td className="py-3"><StatusBadge status={c.status} /></td>
                       <td className="py-3 text-muted-foreground">{c.period_start || '—'}</td>
@@ -168,7 +171,6 @@ const ReportsPage = () => {
         )}
       </div>
 
-      {/* Upload Dialog */}
       <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader><DialogTitle>Upload Performance Report</DialogTitle></DialogHeader>
@@ -178,8 +180,8 @@ const ReportsPage = () => {
               <Select value={selectedDeal} onValueChange={setSelectedDeal}>
                 <SelectTrigger><SelectValue placeholder="Choose a deal..." /></SelectTrigger>
                 <SelectContent>
-                  {(deals || []).map(d => (
-                    <SelectItem key={d.id} value={d.id}>{(d.campaigns as any)?.title || 'Direct Deal'} — ${Number(d.value).toLocaleString()}</SelectItem>
+                  {(deals || []).map((d: DealWithRelations) => (
+                    <SelectItem key={d.id} value={d.id}>{d.campaigns?.title || 'Direct Deal'} — ${Number(d.value).toLocaleString()}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -206,7 +208,6 @@ const ReportsPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Compute Commissions Dialog */}
       <Dialog open={computeOpen} onOpenChange={setComputeOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Compute Commissions</DialogTitle></DialogHeader>
@@ -216,8 +217,8 @@ const ReportsPage = () => {
               <Select value={computeDeal} onValueChange={setComputeDeal}>
                 <SelectTrigger><SelectValue placeholder="Choose a deal..." /></SelectTrigger>
                 <SelectContent>
-                  {(deals || []).map(d => (
-                    <SelectItem key={d.id} value={d.id}>{(d.campaigns as any)?.title || 'Direct Deal'}</SelectItem>
+                  {(deals || []).map((d: DealWithRelations) => (
+                    <SelectItem key={d.id} value={d.id}>{d.campaigns?.title || 'Direct Deal'}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

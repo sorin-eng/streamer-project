@@ -10,7 +10,7 @@ import { useComplianceStatus } from '@/hooks/useCompliance';
 import { Megaphone, Handshake, DollarSign, Users, TrendingUp, Tag, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import type { DealWithRelations } from '@/types/supabase-joins';
+import type { DealWithRelations, CampaignWithOrg } from '@/types/supabase-joins';
 
 const CasinoDashboard = () => {
   const { data: stats } = useDashboardStats();
@@ -34,7 +34,6 @@ const CasinoDashboard = () => {
         <StatCard label="Applications" value={stats?.applicationCount ?? 0} icon={<Users className="h-5 w-5" />} />
       </div>
 
-      {/* Welcome CTA for new casino accounts */}
       {showWelcome && (
         <div className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/[0.03] p-8 text-center space-y-3">
           <h2 className="text-xl font-bold">Welcome to Castreamino! 🎉</h2>
@@ -66,7 +65,7 @@ const CasinoDashboard = () => {
             <Link to="/campaigns"><Button variant="ghost" size="sm">View All</Button></Link>
           </div>
           <div className="space-y-3">
-            {(campaigns || []).slice(0, 3).map(c => (
+            {(campaigns || []).slice(0, 3).map((c: CampaignWithOrg) => (
               <div key={c.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                 <div>
                   <p className="text-sm font-medium">{c.title}</p>
@@ -92,14 +91,12 @@ const StreamerDashboard = () => {
   const { data: compliance } = useComplianceStatus();
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
 
-  // Show onboarding if profile is empty and no listings
   const needsOnboarding = profile !== undefined && !profile?.bio && (!listings || listings.length === 0);
   if (showOnboarding === null && needsOnboarding) {
-    // Delay setting to avoid flicker
     setTimeout(() => setShowOnboarding(true), 300);
   }
 
-  const typedDeals = (deals || []) as any[];
+  const typedDeals = (deals || []) as DealWithRelations[];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -116,7 +113,6 @@ const StreamerDashboard = () => {
         <StatCard label="Open Campaigns" value={stats?.openCampaigns ?? 0} icon={<Megaphone className="h-5 w-5" />} />
       </div>
 
-      {/* Profile Completeness */}
       <ProfileCompleteness
         profile={profile ?? null}
         listingsCount={listings?.length ?? 0}
@@ -124,7 +120,6 @@ const StreamerDashboard = () => {
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* My Listings */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-card">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold">My Listings</h2>
@@ -149,14 +144,13 @@ const StreamerDashboard = () => {
           </div>
         </div>
 
-        {/* My Deals */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-card">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold">My Deals</h2>
             <Link to="/deals"><Button variant="ghost" size="sm">View All</Button></Link>
           </div>
           <div className="space-y-3">
-            {typedDeals.slice(0, 3).map(d => (
+            {typedDeals.slice(0, 3).map((d: DealWithRelations) => (
               <div key={d.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                 <div>
                   <p className="text-sm font-medium">{d.campaigns?.title || 'Direct Deal'}</p>

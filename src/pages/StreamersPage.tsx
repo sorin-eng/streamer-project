@@ -8,9 +8,11 @@ import { EmptyState } from '@/components/EmptyState';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Search, Users, Globe, DollarSign, ExternalLink, MessageSquare, Eye } from 'lucide-react';
+import { Search, Users, Globe, DollarSign, ExternalLink, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, Link } from 'react-router-dom';
+import type { StreamerWithProfile } from '@/types/supabase-joins';
+import type { Tables } from '@/integrations/supabase/types';
 
 const StreamersPage = () => {
   const { data: streamers, isLoading } = useBrowseStreamers();
@@ -22,8 +24,8 @@ const StreamersPage = () => {
   const [contactDialog, setContactDialog] = useState<{ streamerId: string; name: string } | null>(null);
   const [contactMessage, setContactMessage] = useState('');
 
-  const filtered = (streamers || []).filter(s => {
-    const name = (s.profiles as any)?.display_name?.toLowerCase() || '';
+  const filtered = (streamers || []).filter((s: StreamerWithProfile) => {
+    const name = s.profiles?.display_name?.toLowerCase() || '';
     const matchesSearch = !search || name.includes(search.toLowerCase()) || s.bio?.toLowerCase().includes(search.toLowerCase());
     const matchesPlatform = !platformFilter || (s.platforms || []).includes(platformFilter);
     return matchesSearch && matchesPlatform;
@@ -40,8 +42,9 @@ const StreamersPage = () => {
       setContactDialog(null);
       setContactMessage('');
       navigate('/deals');
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
 
@@ -75,15 +78,14 @@ const StreamersPage = () => {
         )}
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map(streamer => (
+          {filtered.map((streamer: StreamerWithProfile) => (
             <div key={streamer.id} className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-elevated transition-all space-y-4">
-              {/* Header */}
               <Link to={`/streamers/${streamer.user_id}`} className="flex items-center gap-3 group">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-brand text-lg font-bold text-primary-foreground shrink-0">
-                  {(streamer.profiles as any)?.display_name?.[0]?.toUpperCase() || '?'}
+                  {streamer.profiles?.display_name?.[0]?.toUpperCase() || '?'}
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-semibold truncate group-hover:text-primary transition-colors">{(streamer.profiles as any)?.display_name || 'Streamer'}</h3>
+                  <h3 className="font-semibold truncate group-hover:text-primary transition-colors">{streamer.profiles?.display_name || 'Streamer'}</h3>
                   <div className="flex items-center gap-2">
                     {streamer.verified === 'approved' && <StatusBadge status="approved" />}
                     {streamer.niche_type && <span className="text-xs text-muted-foreground">{streamer.niche_type}</span>}
@@ -91,7 +93,6 @@ const StreamersPage = () => {
                 </div>
               </Link>
 
-              {/* Stats */}
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-lg bg-muted p-2">
                   <p className="text-sm font-bold">{((streamer.follower_count || 0) / 1000).toFixed(0)}K</p>
@@ -107,32 +108,28 @@ const StreamersPage = () => {
                 </div>
               </div>
 
-              {/* Platforms */}
               <div className="flex gap-1.5 flex-wrap">
                 {(streamer.platforms || []).map((p: string) => (
                   <span key={p} className="inline-flex items-center rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">{p}</span>
                 ))}
               </div>
 
-              {/* Platform links */}
               <div className="flex gap-2 flex-wrap">
                 {streamer.twitch_url && <a href={streamer.twitch_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3 w-3" />Twitch</a>}
                 {streamer.kick_url && <a href={streamer.kick_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3 w-3" />Kick</a>}
                 {streamer.youtube_url && <a href={streamer.youtube_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3 w-3" />YouTube</a>}
               </div>
 
-              {/* Geo */}
               {(streamer.audience_geo || []).length > 0 && (
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Globe className="h-3 w-3" />{streamer.audience_geo.join(', ')}
                 </div>
               )}
 
-              {/* Active Listings */}
               {streamer.listings && streamer.listings.length > 0 && (
                 <div className="space-y-2 border-t border-border pt-3">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Active Listings</p>
-                  {streamer.listings.slice(0, 2).map((listing: any) => (
+                  {streamer.listings.slice(0, 2).map((listing: Tables<'streamer_listings'>) => (
                     <div key={listing.id} className="rounded-lg bg-muted/50 p-2.5">
                       <p className="text-sm font-medium">{listing.title}</p>
                       <div className="flex items-center gap-2 mt-1">
@@ -146,16 +143,14 @@ const StreamersPage = () => {
                 </div>
               )}
 
-              {/* Bio */}
               {streamer.bio && <p className="text-xs text-muted-foreground line-clamp-2">{streamer.bio}</p>}
 
-              {/* Contact Button */}
               <Button
                 className="w-full bg-gradient-brand hover:opacity-90"
                 size="sm"
                 onClick={() => setContactDialog({
                   streamerId: streamer.user_id,
-                  name: (streamer.profiles as any)?.display_name || 'Streamer',
+                  name: streamer.profiles?.display_name || 'Streamer',
                 })}
               >
                 <MessageSquare className="mr-2 h-4 w-4" />Contact Streamer
@@ -165,7 +160,6 @@ const StreamersPage = () => {
         </div>
       </div>
 
-      {/* Contact Dialog */}
       <Dialog open={!!contactDialog} onOpenChange={(open) => { if (!open) { setContactDialog(null); setContactMessage(''); } }}>
         <DialogContent>
           <DialogHeader>

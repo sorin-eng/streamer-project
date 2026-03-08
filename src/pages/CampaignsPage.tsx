@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Megaphone, Plus, Search, Globe, Clock, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import type { CampaignWithOrg } from '@/types/supabase-joins';
 
 const CampaignsPage = () => {
   const { user } = useAuth();
@@ -19,7 +20,7 @@ const CampaignsPage = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [applyOpen, setApplyOpen] = useState<string | null>(null);
   const [applyMsg, setApplyMsg] = useState('');
-  const [dealType, setDealType] = useState<string>('cpa');
+  const [dealType, setDealType] = useState<'revshare' | 'cpa' | 'hybrid' | 'flat_fee'>('cpa');
   const { toast } = useToast();
 
   const { data: campaigns, isLoading } = useCampaigns(search);
@@ -38,13 +39,14 @@ const CampaignsPage = () => {
         budget: Number(fd.get('budget')),
         duration: fd.get('duration') as string,
         target_geo: (fd.get('target_geo') as string).split(',').map(s => s.trim()),
-        deal_type: dealType as any,
+        deal_type: dealType,
         requirements: fd.get('requirements') as string,
       });
       setCreateOpen(false);
       toast({ title: 'Campaign created' });
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
 
@@ -55,8 +57,9 @@ const CampaignsPage = () => {
       setApplyOpen(null);
       setApplyMsg('');
       toast({ title: 'Application submitted!' });
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
 
@@ -84,7 +87,7 @@ const CampaignsPage = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Deal Type</Label>
-                    <Select value={dealType} onValueChange={setDealType}>
+                    <Select value={dealType} onValueChange={(v) => setDealType(v as typeof dealType)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="cpa">CPA (Cost Per Acquisition)</SelectItem>
@@ -116,12 +119,12 @@ const CampaignsPage = () => {
           <EmptyState icon={<Megaphone className="h-6 w-6" />} title="No campaigns found" description={isCasino ? "Create your first campaign to attract streamers." : "Try adjusting your search or check back later."} />
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
-            {campaigns.map(c => (
+            {campaigns.map((c: CampaignWithOrg) => (
               <div key={c.id} className="group rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-elevated hover:border-primary/20 transition-all">
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="font-semibold text-card-foreground group-hover:text-primary transition-colors">{c.title}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{(c.organizations as any)?.name}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{c.organizations?.name}</p>
                   </div>
                   <StatusBadge status={c.status} />
                 </div>

@@ -7,6 +7,11 @@ export interface DealWithRelations extends Tables<'deals'> {
   profiles: { display_name: string } | null;
 }
 
+// Campaign with org info
+export interface CampaignWithOrg extends Tables<'campaigns'> {
+  organizations: { name: string; logo_url: string | null } | null;
+}
+
 // Streamer profile with display info
 export interface StreamerWithProfile extends Tables<'streamer_profiles'> {
   profiles: { display_name: string; avatar_url: string | null } | null;
@@ -27,4 +32,19 @@ export interface DealMessageWithSender extends Tables<'deal_messages'> {
 // Commission with deal info
 export interface CommissionWithDeal extends Tables<'commissions'> {
   deals: { id: string; campaigns: { title: string } | null } | null;
+}
+
+// Profile with user roles
+export interface ProfileWithRole extends Tables<'profiles'> {
+  user_roles: { role: string }[];
+}
+
+// Verification doc with profile
+export interface VerificationDocWithProfile extends Tables<'verification_documents'> {
+  profiles: { display_name: string } | null;
+}
+
+// Audit log with profile
+export interface AuditLogWithProfile extends Tables<'audit_log'> {
+  profiles: { display_name: string } | null;
 }

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +10,7 @@ import { FileText, Download, Pen, Calendar, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import type { DealWithRelations } from '@/types/supabase-joins';
 
 const ContractPage = () => {
   const { user } = useAuth();
@@ -21,7 +21,7 @@ const ContractPage = () => {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const deal = deals?.find(d => d.id === dealId);
+  const deal = deals?.find((d: DealWithRelations) => d.id === dealId);
 
   const handleSign = async (contractId: string) => {
     try {
@@ -31,7 +31,7 @@ const ContractPage = () => {
         .update({
           [signField]: user?.id,
           signed_at: new Date().toISOString(),
-          status: 'signed' as any,
+          status: 'signed',
         })
         .eq('id', contractId);
       if (error) throw error;
@@ -42,7 +42,7 @@ const ContractPage = () => {
         _entity_id: contractId,
       });
 
-      await supabase.rpc('log_compliance_event' as any, {
+      await supabase.rpc('log_compliance_event', {
         _event_type: 'compliance.verified',
         _entity_type: 'contract',
         _entity_id: contractId,
@@ -52,8 +52,9 @@ const ContractPage = () => {
 
       toast({ title: 'Contract signed' });
       qc.invalidateQueries({ queryKey: ['contracts'] });
-    } catch (err: any) {
-      toast({ title: 'Error signing', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error signing', description: message, variant: 'destructive' });
     }
   };
 
@@ -67,7 +68,7 @@ const ContractPage = () => {
               <p className="text-sm text-muted-foreground">Select a deal to view its contracts</p>
             </div>
             <div className="space-y-3">
-              {(deals || []).map(d => (
+              {(deals || []).map((d: DealWithRelations) => (
                 <Link
                   key={d.id}
                   to={`/contracts?deal=${d.id}`}
@@ -75,8 +76,8 @@ const ContractPage = () => {
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">{(d.campaigns as any)?.title || `Direct Deal — ${(d.organizations as any)?.name || (d.profiles as any)?.display_name}`}</p>
-                      <p className="text-sm text-muted-foreground">{(d.organizations as any)?.name}</p>
+                      <p className="font-medium">{d.campaigns?.title || `Direct Deal — ${d.organizations?.name || d.profiles?.display_name}`}</p>
+                      <p className="text-sm text-muted-foreground">{d.organizations?.name}</p>
                     </div>
                     <StatusBadge status={d.state} />
                   </div>
@@ -99,7 +100,7 @@ const ContractPage = () => {
           <div>
             <h1 className="text-2xl font-bold">Contract</h1>
             <p className="text-sm text-muted-foreground">
-              {deal ? `${(deal.campaigns as any)?.title || 'Direct Deal'} — ${(deal.organizations as any)?.name}` : 'Deal contract'}
+              {deal ? `${deal.campaigns?.title || 'Direct Deal'} — ${deal.organizations?.name}` : 'Deal contract'}
             </p>
           </div>
 
@@ -126,7 +127,6 @@ const ContractPage = () => {
                   </pre>
                 </div>
 
-                {/* Fee breakdown */}
                 {deal && (
                   <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-2">
                     <h3 className="font-medium text-sm">Fee Breakdown</h3>
@@ -136,12 +136,12 @@ const ContractPage = () => {
                         <p className="font-semibold">${Number(deal.value).toLocaleString()}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Platform Fee ({(deal as any).platform_fee_pct ?? 8}%)</p>
-                        <p className="font-semibold">${(Number(deal.value) * ((deal as any).platform_fee_pct ?? 8) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        <p className="text-muted-foreground">Platform Fee ({deal.platform_fee_pct}%)</p>
+                        <p className="font-semibold">${(Number(deal.value) * deal.platform_fee_pct / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Streamer Payout</p>
-                        <p className="font-semibold text-primary">${(Number(deal.value) * (1 - ((deal as any).platform_fee_pct ?? 8) / 100)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        <p className="font-semibold text-primary">${(Number(deal.value) * (1 - deal.platform_fee_pct / 100)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                       </div>
                     </div>
                   </div>

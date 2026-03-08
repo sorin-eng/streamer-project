@@ -1,6 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import type {
+  DealWithRelations, CampaignWithOrg, ApplicationWithProfile,
+  DealMessageWithSender, CommissionWithDeal, StreamerWithProfile,
+  ProfileWithRole, VerificationDocWithProfile, AuditLogWithProfile,
+} from '@/types/supabase-joins';
+
+// ---- Notification helper ----
+async function sendNotification(params: {
+  event_type: string;
+  deal_id?: string;
+  title: string;
+  body?: string;
+  entity_type?: string;
+  entity_id?: string;
+}) {
+  try {
+    await supabase.functions.invoke('notify', { body: params });
+  } catch {
+    // Non-blocking — don't fail the main action
+  }
+}
 
 // ---- Campaigns ----
 export function useCampaigns(search?: string) {
@@ -16,7 +37,7 @@ export function useCampaigns(search?: string) {
       }
       const { data, error } = await q;
       if (error) throw error;
-      return data;
+      return data as unknown as CampaignWithOrg[];
     },
   });
 }
@@ -46,7 +67,6 @@ export function useCreateCampaign() {
         .select()
         .single();
       if (error) throw error;
-      // Audit
       await supabase.rpc('log_audit', {
         _action: 'CREATE_CAMPAIGN',
         _entity_type: 'campaign',
@@ -72,7 +92,7 @@ export function useApplications(campaignId?: string) {
       if (campaignId) q = q.eq('campaign_id', campaignId);
       const { data, error } = await q;
       if (error) throw error;
-      return data;
+      return data as unknown as ApplicationWithProfile[];
     },
   });
 }
@@ -105,10 +125,10 @@ export function useUpdateApplicationStatus() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status }: { id: string; status: 'pending' | 'shortlisted' | 'accepted' | 'rejected' | 'withdrawn' }) => {
       const { error } = await supabase
         .from('applications')
-        .update({ status: status as any, reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
+        .update({ status, reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
         .eq('id', id);
       if (error) throw error;
     },
@@ -126,7 +146,7 @@ export function useDeals() {
         .select('*, campaigns(title), organizations(name), profiles:streamer_id(display_name)')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data as unknown as DealWithRelations[];
     },
   });
 }
@@ -148,11 +168,10 @@ export function useCreateDeal() {
         .select()
         .single();
       if (error) throw error;
-      // Log initial state
       await supabase.from('deal_state_log').insert({
         deal_id: data.id,
         to_state: 'negotiation',
-        changed_by: values.streamer_id, // will be overridden by the caller
+        changed_by: values.streamer_id,
       });
       return data;
     },
@@ -175,9 +194,9 @@ export function useDealMessages(dealId: string | null) {
         .eq('deal_id', dealId!)
         .order('created_at', { ascending: true });
       if (error) throw error;
-      return data;
+      return data as unknown as DealMessageWithSender[];
     },
-    refetchInterval: 5000, // poll every 5s as backup to realtime
+    refetchInterval: 5000,
   });
 }
 
@@ -191,6 +210,15 @@ export function useSendMessage() {
         .from('deal_messages')
         .insert({ deal_id: dealId, sender_id: user.id, content });
       if (error) throw error;
+      // Fire-and-forget notification
+      sendNotification({
+        event_type: 'new_message',
+        deal_id: dealId,
+        title: 'New message',
+        body: content.slice(0, 100),
+        entity_type: 'deal',
+        entity_id: dealId,
+      });
     },
     onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['deal_messages', vars.dealId] }),
   });
@@ -233,10 +261,10 @@ export function useUpdateStreamerProfile() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async (values: Record<string, any>) => {
+    mutationFn: async (values: Record<string, unknown>) => {
       const { error } = await supabase
         .from('streamer_profiles')
-        .update(values)
+        .update(values as Record<string, string>)
         .eq('user_id', user!.id);
       if (error) throw error;
     },
@@ -248,11 +276,11 @@ export function useUpdateCasinoProgram() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async (values: Record<string, any>) => {
+    mutationFn: async (values: Record<string, unknown>) => {
       if (!user?.organizationId) throw new Error('No org');
       const { error } = await supabase
         .from('casino_programs')
-        .update(values)
+        .update(values as Record<string, string>)
         .eq('organization_id', user.organizationId);
       if (error) throw error;
     },
@@ -270,7 +298,7 @@ export function useAllProfiles() {
         .select('*, user_roles(role)')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data as unknown as ProfileWithRole[];
     },
   });
 }
@@ -284,7 +312,7 @@ export function useVerificationDocuments() {
         .select('*, profiles:user_id(display_name)')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data as unknown as VerificationDocWithProfile[];
     },
   });
 }
@@ -319,7 +347,7 @@ export function useAuditLog() {
         .order('created_at', { ascending: false })
         .limit(100);
       if (error) throw error;
-      return data;
+      return data as unknown as AuditLogWithProfile[];
     },
   });
 }
@@ -364,7 +392,7 @@ export function useDashboardStats() {
         supabase.from('deals').select('id, value, platform_fee_pct', { count: 'exact' }),
       ]);
       const platformRevenue = (dealData.data || []).reduce((sum, d) => {
-        return sum + Number(d.value) * (Number((d as any).platform_fee_pct ?? 8) / 100);
+        return sum + Number(d.value) * (Number(d.platform_fee_pct ?? 8) / 100);
       }, 0);
       return {
         totalUsers: profileCount.count || 0,
@@ -410,7 +438,11 @@ export function useCreateListing() {
       if (!user) throw new Error('Not authenticated');
       const { data, error } = await supabase
         .from('streamer_listings')
-        .insert({ ...values, user_id: user.id, pricing_type: values.pricing_type as any })
+        .insert({
+          ...values,
+          user_id: user.id,
+          pricing_type: values.pricing_type as 'fixed_per_stream' | 'fixed_package' | 'hourly' | 'negotiable',
+        })
         .select()
         .single();
       if (error) throw error;
@@ -423,10 +455,10 @@ export function useCreateListing() {
 export function useUpdateListing() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...values }: { id: string; [key: string]: any }) => {
+    mutationFn: async ({ id, ...values }: { id: string; [key: string]: unknown }) => {
       const { error } = await supabase
         .from('streamer_listings')
-        .update(values)
+        .update(values as Record<string, string>)
         .eq('id', id);
       if (error) throw error;
     },
@@ -458,7 +490,6 @@ export function useBrowseStreamers() {
         .order('avg_live_viewers', { ascending: false });
       if (error) throw error;
       
-      // Fetch active listings for all streamers
       const userIds = streamers?.map(s => s.user_id) || [];
       const { data: listings } = await supabase
         .from('streamer_listings')
@@ -469,7 +500,7 @@ export function useBrowseStreamers() {
       return (streamers || []).map(s => ({
         ...s,
         listings: (listings || []).filter(l => l.user_id === s.user_id),
-      }));
+      })) as unknown as StreamerWithProfile[];
     },
   });
 }
@@ -512,6 +543,16 @@ export function useInitiateContact() {
         _details: { streamer_id: streamerId },
       });
 
+      // Notify streamer
+      sendNotification({
+        event_type: 'deal_created',
+        deal_id: deal.id,
+        title: 'New deal inquiry',
+        body: message.slice(0, 100),
+        entity_type: 'deal',
+        entity_id: deal.id,
+      });
+
       return deal;
     },
     onSuccess: () => {
@@ -532,7 +573,7 @@ export function useCommissions() {
       }
       const { data, error } = await q;
       if (error) throw error;
-      return data;
+      return data as unknown as CommissionWithDeal[];
     },
   });
 }
@@ -564,7 +605,6 @@ export function useUnreadDeals() {
     refetchInterval: 15000,
     queryFn: async () => {
       if (!user) return 0;
-      // Get all deals for current user
       const { data: deals } = await supabase
         .from('deals')
         .select('id')
@@ -587,6 +627,40 @@ export function useUnreadDeals() {
       }
       return unread;
     },
+  });
+}
+
+// ---- Notifications ----
+export function useNotifications() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['notifications', user?.id],
+    enabled: !!user,
+    refetchInterval: 15000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('read', false)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useMarkNotificationRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   });
 }
 
