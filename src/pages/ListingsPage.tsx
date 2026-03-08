@@ -69,7 +69,7 @@ const ListingsPage = () => {
 
     try {
       if (editingId) {
-        await updateListing.mutateAsync({ id: editingId, ...values, pricing_type: values.pricing_type as any });
+        await updateListing.mutateAsync({ id: editingId, ...values, pricing_type: values.pricing_type as 'fixed_per_stream' | 'fixed_package' | 'hourly' | 'negotiable' });
         toast({ title: 'Listing updated' });
       } else {
         await createListing.mutateAsync(values);
