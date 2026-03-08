@@ -25,6 +25,8 @@ const SignupPage = () => {
   const { signup } = useAuth();
   const navigate = useNavigate();
 
+  const [emailSent, setEmailSent] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ageConfirmed) { setError('You must confirm you are 18+'); return; }
@@ -33,7 +35,7 @@ const SignupPage = () => {
     setLoading(true);
     const result = await signup(email, password, role, displayName);
     setLoading(false);
-    if (result.ok) navigate('/dashboard');
+    if (result.ok) setEmailSent(true);
     else setError(result.error || 'Signup failed');
   };
 

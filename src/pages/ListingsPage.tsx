@@ -32,6 +32,25 @@ const ListingsPage = () => {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [pricingType, setPricingType] = useState('negotiable');
+  const [currency, setCurrency] = useState('USDT');
+
+  const editListing = listings?.find(l => l.id === editingId);
+
+  const openCreate = () => {
+    setEditingId(null);
+    setPricingType('negotiable');
+    setCurrency('USDT');
+    setDialogOpen(true);
+  };
+
+  const openEdit = (id: string) => {
+    const listing = listings?.find(l => l.id === id);
+    setEditingId(id);
+    setPricingType(listing?.pricing_type || 'negotiable');
+    setCurrency(listing?.price_currency || 'USDT');
+    setDialogOpen(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -40,9 +59,9 @@ const ListingsPage = () => {
     const values = {
       title: fd.get('title') as string,
       description: fd.get('description') as string,
-      pricing_type: fd.get('pricing_type') as string,
+      pricing_type: pricingType,
       price_amount: Number(fd.get('price_amount')) || 0,
-      price_currency: fd.get('price_currency') as string,
+      price_currency: currency,
       min_streams: Number(fd.get('min_streams')) || undefined,
       package_details: fd.get('package_details') as string || undefined,
       platforms,
@@ -72,8 +91,6 @@ const ListingsPage = () => {
     }
   };
 
-  const editListing = listings?.find(l => l.id === editingId);
-
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
@@ -84,7 +101,7 @@ const ListingsPage = () => {
           </div>
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditingId(null); }}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-brand hover:opacity-90"><Plus className="mr-2 h-4 w-4" />New Listing</Button>
+              <Button className="bg-gradient-brand hover:opacity-90" onClick={openCreate}><Plus className="mr-2 h-4 w-4" />New Listing</Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
@@ -102,7 +119,7 @@ const ListingsPage = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Pricing Type</Label>
-                    <Select name="pricing_type" defaultValue={editListing?.pricing_type || 'negotiable'}>
+                    <Select value={pricingType} onValueChange={setPricingType}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {PRICING_TYPES.map(pt => (
@@ -113,7 +130,7 @@ const ListingsPage = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Currency</Label>
-                    <Select name="price_currency" defaultValue={editListing?.price_currency || 'USDT'}>
+                    <Select value={currency} onValueChange={setCurrency}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {CURRENCIES.map(c => (
@@ -185,7 +202,7 @@ const ListingsPage = () => {
                 ))}
               </div>
               <div className="flex gap-2 pt-1">
-                <Button size="sm" variant="outline" onClick={() => { setEditingId(listing.id); setDialogOpen(true); }}>
+                <Button size="sm" variant="outline" onClick={() => openEdit(listing.id)}>
                   <Edit2 className="mr-1 h-3 w-3" />Edit
                 </Button>
                 <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleDelete(listing.id)}>
