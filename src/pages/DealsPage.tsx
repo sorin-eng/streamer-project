@@ -190,7 +190,7 @@ const DealsPage = () => {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
+          <DealsSkeleton />
         ) : !deals?.length ? (
           <EmptyState
             icon={<Handshake className="h-6 w-6" />}
