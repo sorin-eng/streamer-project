@@ -125,34 +125,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const userId = data.user.id;
 
-    // Insert role
-    await supabase.from('user_roles').insert({ user_id: userId, role });
+    // Use security definer function for all setup
+    const { error: setupError } = await (supabase.rpc as any)('setup_new_user', {
+      _user_id: userId,
+      _role: role,
+      _display_name: displayName,
+    });
 
-    // Update profile display name (trigger already created it)
-    await supabase.from('profiles').update({ display_name: displayName }).eq('user_id', userId);
-
-    // Role-specific setup
-    if (role === 'casino_manager') {
-      // Create organization and membership
-      const { data: org } = await supabase
-        .from('organizations')
-        .insert({ name: displayName })
-        .select('id')
-        .single();
-      if (org) {
-        await supabase.from('organization_members').insert({
-          organization_id: org.id,
-          user_id: userId,
-          role: 'owner',
-        });
-        // Create casino program stub
-        await supabase.from('casino_programs').insert({
-          organization_id: org.id,
-          brand_name: displayName,
-        });
-      }
-    } else if (role === 'streamer') {
-      await supabase.from('streamer_profiles').insert({ user_id: userId });
+    if (setupError) {
+      console.error('Setup error:', setupError);
+      return { ok: false, error: 'Account created but setup failed. Please contact support.' };
     }
 
     return { ok: true };
