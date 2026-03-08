@@ -10,13 +10,12 @@ import { Button } from '@/components/ui/button';
 const CasinoDashboard = () => {
   const { data: stats } = useDashboardStats();
   const { data: campaigns } = useCampaigns();
-  const { data: applications } = useApplications();
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold">Casino Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Manage campaigns and streamer partnerships</p>
+        <p className="text-sm text-muted-foreground">Find streamers and manage partnerships</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Active Campaigns" value={stats?.activeCampaigns ?? 0} icon={<Megaphone className="h-5 w-5" />} />
@@ -24,6 +23,16 @@ const CasinoDashboard = () => {
         <StatCard label="Total Spend" value={`$${(stats?.totalSpend ?? 0).toLocaleString()}`} icon={<DollarSign className="h-5 w-5" />} />
         <StatCard label="Applications" value={stats?.applicationCount ?? 0} icon={<Users className="h-5 w-5" />} />
       </div>
+
+      {/* Browse Streamers CTA */}
+      <div className="rounded-xl border border-primary/20 bg-primary/[0.03] p-6 flex items-center justify-between">
+        <div>
+          <h2 className="font-semibold text-lg">Discover Streamers</h2>
+          <p className="text-sm text-muted-foreground">Browse verified streamers, view their listings, and reach out directly.</p>
+        </div>
+        <Link to="/streamers"><Button className="bg-gradient-brand hover:opacity-90"><Search className="mr-2 h-4 w-4" />Browse Streamers</Button></Link>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-border bg-card p-5 shadow-card">
           <div className="flex items-center justify-between mb-4">
@@ -41,28 +50,6 @@ const CasinoDashboard = () => {
               </div>
             ))}
             {(!campaigns || campaigns.length === 0) && <p className="text-sm text-muted-foreground">No campaigns yet</p>}
-          </div>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-5 shadow-card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold">Recent Applications</h2>
-          </div>
-          <div className="space-y-3">
-            {(applications || []).slice(0, 3).map(a => (
-              <div key={a.id} className="flex items-center justify-between rounded-lg border border-border p-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
-                    {(a.profiles as any)?.display_name?.[0] || '?'}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{(a.profiles as any)?.display_name || 'Streamer'}</p>
-                    <p className="text-xs text-muted-foreground">{(a.streamer_profiles as any)?.avg_live_viewers || 0} avg viewers</p>
-                  </div>
-                </div>
-                <StatusBadge status={a.status} />
-              </div>
-            ))}
-            {(!applications || applications.length === 0) && <p className="text-sm text-muted-foreground">No applications yet</p>}
           </div>
         </div>
       </div>
