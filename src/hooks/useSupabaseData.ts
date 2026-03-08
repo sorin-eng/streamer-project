@@ -386,19 +386,25 @@ export function useDashboardStats() {
       }
 
       // Admin
-      const [profileCount, campaignCount, dealData] = await Promise.all([
+      const [profileCount, campaignData, dealData, pendingDocs] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact' }),
-        supabase.from('campaigns').select('id', { count: 'exact' }),
-        supabase.from('deals').select('id, value, platform_fee_pct', { count: 'exact' }),
+        supabase.from('campaigns').select('id, status', { count: 'exact' }),
+        supabase.from('deals').select('id, value, state, platform_fee_pct', { count: 'exact' }),
+        supabase.from('verification_documents').select('id', { count: 'exact' }).eq('status', 'pending'),
       ]);
       const platformRevenue = (dealData.data || []).reduce((sum, d) => {
         return sum + Number(d.value) * (Number(d.platform_fee_pct ?? 8) / 100);
       }, 0);
+      const activeCampaigns = campaignData.data?.filter(c => c.status === 'open' || c.status === 'in_progress').length || 0;
+      const activeDeals = dealData.data?.filter(d => d.state === 'active').length || 0;
       return {
         totalUsers: profileCount.count || 0,
-        totalCampaigns: campaignCount.count || 0,
+        totalCampaigns: campaignData.count || 0,
+        activeCampaigns,
         totalDeals: dealData.count || 0,
+        activeDeals,
         platformRevenue: Math.round(platformRevenue * 100) / 100,
+        pendingVerifications: pendingDocs.count || 0,
       };
     },
   });
