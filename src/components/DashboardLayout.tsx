@@ -98,6 +98,11 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
               >
                 <item.icon className="h-4 w-4" />
                 {item.label}
+                {(item.to === '/deals' || item.to === '/messages') && (unreadCount ?? 0) > 0 && (
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground px-1">
+                    {unreadCount}
+                  </span>
+                )}
               </Link>
             );
           })}
