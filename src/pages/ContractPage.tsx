@@ -75,7 +75,7 @@ const ContractPage = () => {
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">{(d.campaigns as any)?.title}</p>
+                      <p className="font-medium">{(d.campaigns as any)?.title || `Direct Deal — ${(d.organizations as any)?.name || (d.profiles as any)?.display_name}`}</p>
                       <p className="text-sm text-muted-foreground">{(d.organizations as any)?.name}</p>
                     </div>
                     <StatusBadge status={d.state} />
