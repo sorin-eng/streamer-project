@@ -126,6 +126,27 @@ const ContractPage = () => {
                   </pre>
                 </div>
 
+                {/* Fee breakdown */}
+                {deal && (
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-2">
+                    <h3 className="font-medium text-sm">Fee Breakdown</h3>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Deal Value</p>
+                        <p className="font-semibold">${Number(deal.value).toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Platform Fee ({(deal as any).platform_fee_pct ?? 8}%)</p>
+                        <p className="font-semibold">${(Number(deal.value) * ((deal as any).platform_fee_pct ?? 8) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Streamer Payout</p>
+                        <p className="font-semibold text-primary">${(Number(deal.value) * (1 - ((deal as any).platform_fee_pct ?? 8) / 100)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <p className="text-muted-foreground">Created</p>

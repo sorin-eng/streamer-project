@@ -127,17 +127,22 @@ Deno.serve(async (req) => {
       }
 
       if (amount > 0) {
+        const platformFeePct = deal.platform_fee_pct ?? 8;
+        const platformFee = Math.round(amount * (platformFeePct / 100) * 100) / 100;
+        const streamerAmount = Math.round((amount - platformFee) * 100) / 100;
+
         const { data: commission, error: commErr } = await adminClient
           .from("commissions")
           .insert({
             deal_id,
             streamer_id: deal.streamer_id,
-            amount: Math.round(amount * 100) / 100,
+            amount: streamerAmount,
+            platform_fee: platformFee,
             status: "pending",
             period_start: period_start || null,
             period_end: period_end || null,
           })
-          .select("id, amount, status")
+          .select("id, amount, status, platform_fee")
           .single();
 
         if (!commErr && commission) {

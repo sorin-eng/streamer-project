@@ -203,6 +203,7 @@ const DealsPage = () => {
                   </div>
                   <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1"><DollarSign className="h-3.5 w-3.5" />${Number(deal.value).toLocaleString()}</span>
+                    <span className="flex items-center gap-1 text-xs bg-muted rounded-full px-2 py-0.5">Platform fee: {(deal as any).platform_fee_pct ?? 8}%</span>
                     {deal.start_date && <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{deal.start_date} → {deal.end_date}</span>}
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
