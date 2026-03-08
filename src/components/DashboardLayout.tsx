@@ -48,6 +48,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { data: unreadCount } = useUnreadDeals();
 
   if (!user) return null;
 
