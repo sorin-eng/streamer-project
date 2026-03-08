@@ -71,7 +71,7 @@ const StreamersPage = () => {
           </div>
         </div>
 
-        {isLoading && <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}
+        {isLoading && <StreamersSkeleton />}
 
         {!isLoading && filtered.length === 0 && (
           <EmptyState icon={<Users className="h-12 w-12" />} title="No streamers found" description="Try adjusting your search or filters" />
