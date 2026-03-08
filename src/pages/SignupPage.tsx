@@ -146,6 +146,7 @@ const SignupPage = () => {
             <Link to="/login" className="font-medium text-primary hover:underline">Sign in</Link>
           </p>
         </div>
+        )}
       </div>
     </div>
   );
