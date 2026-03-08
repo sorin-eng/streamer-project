@@ -99,7 +99,7 @@ const StreamerDashboard = () => {
     setTimeout(() => setShowOnboarding(true), 300);
   }
 
-  const typedDeals = (deals || []) as DealWithRelations[];
+  const typedDeals = (deals || []) as any[];
 
   return (
     <div className="space-y-6 animate-fade-in">
