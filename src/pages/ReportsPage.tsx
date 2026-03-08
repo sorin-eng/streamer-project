@@ -155,7 +155,7 @@ const ReportsPage = () => {
                 <tbody className="divide-y divide-border">
                   {commissions.map(c => (
                     <tr key={c.id}>
-                      <td className="py-3 font-medium">{(c.deals as any)?.campaigns?.title || 'N/A'}</td>
+                      <td className="py-3 font-medium">{(c.deals as any)?.campaigns?.title || 'Direct Deal'}</td>
                       <td className="py-3">${Number(c.amount).toLocaleString()}</td>
                       <td className="py-3"><StatusBadge status={c.status} /></td>
                       <td className="py-3 text-muted-foreground">{c.period_start || '—'}</td>
@@ -179,7 +179,7 @@ const ReportsPage = () => {
                 <SelectTrigger><SelectValue placeholder="Choose a deal..." /></SelectTrigger>
                 <SelectContent>
                   {(deals || []).map(d => (
-                    <SelectItem key={d.id} value={d.id}>{(d.campaigns as any)?.title} — ${Number(d.value).toLocaleString()}</SelectItem>
+                    <SelectItem key={d.id} value={d.id}>{(d.campaigns as any)?.title || 'Direct Deal'} — ${Number(d.value).toLocaleString()}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -217,7 +217,7 @@ const ReportsPage = () => {
                 <SelectTrigger><SelectValue placeholder="Choose a deal..." /></SelectTrigger>
                 <SelectContent>
                   {(deals || []).map(d => (
-                    <SelectItem key={d.id} value={d.id}>{(d.campaigns as any)?.title}</SelectItem>
+                    <SelectItem key={d.id} value={d.id}>{(d.campaigns as any)?.title || 'Direct Deal'}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

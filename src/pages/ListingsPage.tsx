@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/StatusBadge';
 import { EmptyState } from '@/components/EmptyState';
-import { Plus, Edit2, Trash2, DollarSign, Tag } from 'lucide-react';
+import { Plus, Edit2, Trash2, DollarSign, Tag, Pause, Play } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const PRICING_TYPES = [
@@ -86,6 +86,16 @@ const ListingsPage = () => {
     try {
       await deleteListing.mutateAsync(id);
       toast({ title: 'Listing deleted' });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const handleToggleStatus = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'paused' : 'active';
+    try {
+      await updateListing.mutateAsync({ id, status: newStatus });
+      toast({ title: `Listing ${newStatus === 'active' ? 'activated' : 'paused'}` });
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     }
@@ -204,6 +214,9 @@ const ListingsPage = () => {
               <div className="flex gap-2 pt-1">
                 <Button size="sm" variant="outline" onClick={() => openEdit(listing.id)}>
                   <Edit2 className="mr-1 h-3 w-3" />Edit
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleToggleStatus(listing.id, listing.status)}>
+                  {listing.status === 'active' ? <><Pause className="mr-1 h-3 w-3" />Pause</> : <><Play className="mr-1 h-3 w-3" />Activate</>}
                 </Button>
                 <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleDelete(listing.id)}>
                   <Trash2 className="mr-1 h-3 w-3" />Delete
