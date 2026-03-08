@@ -113,6 +113,15 @@ const StreamerProfileView = () => {
         audience_geo: (fd.get('audience_geo') as string).split(',').map(s => s.trim()),
         payment_preference: fd.get('payment_preference') as string,
         restricted_countries: (fd.get('restricted_countries') as string).split(',').map(s => s.trim()).filter(Boolean),
+        twitch_url: fd.get('twitch_url') as string || null,
+        kick_url: fd.get('kick_url') as string || null,
+        youtube_url: fd.get('youtube_url') as string || null,
+        twitter_url: fd.get('twitter_url') as string || null,
+        instagram_url: fd.get('instagram_url') as string || null,
+        tiktok_url: fd.get('tiktok_url') as string || null,
+        discord_url: fd.get('discord_url') as string || null,
+        wallet_address: fd.get('wallet_address') as string || null,
+        preferred_crypto: fd.get('preferred_crypto') as string || 'USDT',
       });
       toast({ title: 'Profile updated' });
     } catch (err: any) {
