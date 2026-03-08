@@ -58,12 +58,12 @@ const SignupPage = () => {
 
       <div className="flex w-full lg:w-1/2 items-center justify-center p-8">
         <div className="w-full max-w-sm space-y-6 animate-slide-up">
-          <div className="lg:hidden flex items-center gap-2 mb-8">
+          <Link to="/" className="lg:hidden flex items-center gap-2 mb-8">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand">
               <Radio className="h-4 w-4 text-primary-foreground" />
             </div>
             <span className="text-lg font-bold" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Castreamino</span>
-          </div>
+          </Link>
 
           <div>
             <h2 className="text-2xl font-bold">Create an account</h2>

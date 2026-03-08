@@ -65,10 +65,12 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex h-16 items-center gap-2.5 border-b border-sidebar-border px-6">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand shadow-glow">
-            <Radio className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="text-lg font-bold text-sidebar-accent-foreground" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Castreamino</span>
+          <Link to="/" className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand shadow-glow">
+              <Radio className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <span className="text-lg font-bold text-sidebar-accent-foreground" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Castreamino</span>
+          </Link>
           <button className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5 text-sidebar-foreground" />
           </button>
