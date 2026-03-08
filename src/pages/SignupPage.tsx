@@ -23,7 +23,7 @@ const SignupPage = () => {
   const [loading, setLoading] = useState(false);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const { signup } = useAuth();
-  const navigate = useNavigate();
+  // removed navigate - no longer auto-redirect
 
   const [emailSent, setEmailSent] = useState(false);
 
