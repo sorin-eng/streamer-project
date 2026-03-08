@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Megaphone, Plus, Search, Globe, Clock, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +19,7 @@ const CampaignsPage = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [applyOpen, setApplyOpen] = useState<string | null>(null);
   const [applyMsg, setApplyMsg] = useState('');
+  const [dealType, setDealType] = useState<string>('cpa');
   const { toast } = useToast();
 
   const { data: campaigns, isLoading } = useCampaigns(search);
@@ -36,7 +38,7 @@ const CampaignsPage = () => {
         budget: Number(fd.get('budget')),
         duration: fd.get('duration') as string,
         target_geo: (fd.get('target_geo') as string).split(',').map(s => s.trim()),
-        deal_type: 'cpa',
+        deal_type: dealType as any,
         requirements: fd.get('requirements') as string,
       });
       setCreateOpen(false);
@@ -80,6 +82,18 @@ const CampaignsPage = () => {
                     <div className="space-y-2"><Label>Budget ($)</Label><Input name="budget" type="number" placeholder="50000" /></div>
                     <div className="space-y-2"><Label>Duration</Label><Input name="duration" placeholder="3 months" /></div>
                   </div>
+                  <div className="space-y-2">
+                    <Label>Deal Type</Label>
+                    <Select value={dealType} onValueChange={setDealType}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cpa">CPA (Cost Per Acquisition)</SelectItem>
+                        <SelectItem value="revshare">RevShare (Revenue Share)</SelectItem>
+                        <SelectItem value="hybrid">Hybrid (CPA + RevShare)</SelectItem>
+                        <SelectItem value="flat_fee">Flat Fee</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-2"><Label>Target Geo</Label><Input name="target_geo" placeholder="UK, DE, CA" /></div>
                   <div className="space-y-2"><Label>Requirements</Label><Textarea name="requirements" placeholder="Min viewers, audience requirements..." rows={2} /></div>
                   <Button type="submit" className="w-full bg-gradient-brand hover:opacity-90" disabled={createCampaign.isPending}>
@@ -99,11 +113,11 @@ const CampaignsPage = () => {
         {isLoading ? (
           <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
         ) : !campaigns?.length ? (
-          <EmptyState icon={<Megaphone className="h-6 w-6" />} title="No campaigns found" description="Try adjusting your search or check back later." />
+          <EmptyState icon={<Megaphone className="h-6 w-6" />} title="No campaigns found" description={isCasino ? "Create your first campaign to attract streamers." : "Try adjusting your search or check back later."} />
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {campaigns.map(c => (
-              <div key={c.id} className="group rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-elevated transition-all">
+              <div key={c.id} className="group rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-elevated hover:border-primary/20 transition-all">
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="font-semibold text-card-foreground group-hover:text-primary transition-colors">{c.title}</h3>
@@ -119,12 +133,10 @@ const CampaignsPage = () => {
                 </div>
                 <div className="mt-4 flex items-center justify-between">
                   <StatusBadge status={c.deal_type} />
-                </div>
-                <div className="mt-4">
                   {isCasino ? (
-                    <Button variant="outline" size="sm" className="w-full">Manage</Button>
+                    <Button variant="outline" size="sm">Manage</Button>
                   ) : user?.role === 'streamer' && c.status === 'open' ? (
-                    <Button size="sm" className="w-full bg-gradient-brand hover:opacity-90" onClick={() => setApplyOpen(c.id)}>Apply Now</Button>
+                    <Button size="sm" className="bg-gradient-brand hover:opacity-90" onClick={() => setApplyOpen(c.id)}>Apply Now</Button>
                   ) : null}
                 </div>
               </div>
@@ -133,7 +145,6 @@ const CampaignsPage = () => {
         )}
       </div>
 
-      {/* Apply dialog */}
       <Dialog open={!!applyOpen} onOpenChange={open => { if (!open) setApplyOpen(null); }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Apply to Campaign</DialogTitle></DialogHeader>

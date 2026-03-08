@@ -75,7 +75,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use service role for insert/update operations to avoid RLS issues
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -115,7 +114,6 @@ Deno.serve(async (req) => {
       .from("conversion_events")
       .insert(events);
 
-    // Use admin client for status update to bypass RLS
     const finalStatus = eventsErr ? "failed" : "completed";
     await adminClient
       .from("report_uploads")

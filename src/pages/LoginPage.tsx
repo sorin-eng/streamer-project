@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Zap, AlertCircle } from 'lucide-react';
+import { Radio, AlertCircle } from 'lucide-react';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -26,35 +26,34 @@ const LoginPage = () => {
 
   return (
     <div className="flex min-h-screen">
-      {/* Left panel */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-dark flex-col justify-between p-12">
-        <div className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-brand">
-            <Zap className="h-5 w-5 text-primary-foreground" />
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-dark flex-col justify-between p-12 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 80%, hsl(263, 70%, 58%) 0%, transparent 50%), radial-gradient(circle at 80% 20%, hsl(40, 96%, 53%) 0%, transparent 40%)' }} />
+        <div className="relative flex items-center gap-2.5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-brand shadow-glow">
+            <Radio className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-xl font-bold text-primary-foreground">BrokerHub</span>
+          <span className="text-xl font-bold text-primary-foreground" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Castreamino</span>
         </div>
-        <div>
+        <div className="relative">
           <h1 className="text-4xl font-bold text-primary-foreground leading-tight">
-            Connect Casinos<br />with Top Streamers
+            Where Casinos<br />Meet Streamers
           </h1>
           <p className="mt-4 text-lg text-primary-foreground/70 max-w-md">
-            The B2B marketplace for licensed online casinos and gambling influencers. Not a casino — a broker platform.
+            The partnership marketplace for licensed online casinos and gambling content creators.
           </p>
         </div>
-        <p className="text-xs text-primary-foreground/40">
-          This platform does not operate gambling services. 18+ only. Please gamble responsibly.
+        <p className="relative text-xs text-primary-foreground/40">
+          This platform does not operate gambling services. 18+ only.
         </p>
       </div>
 
-      {/* Right panel */}
       <div className="flex w-full lg:w-1/2 items-center justify-center p-8">
         <div className="w-full max-w-sm space-y-6 animate-slide-up">
           <div className="lg:hidden flex items-center gap-2 mb-8">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand">
-              <Zap className="h-4 w-4 text-primary-foreground" />
+              <Radio className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-lg font-bold">BrokerHub</span>
+            <span className="text-lg font-bold" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Castreamino</span>
           </div>
 
           <div>
