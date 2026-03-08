@@ -500,7 +500,7 @@ export function useBrowseStreamers() {
       return (streamers || []).map(s => ({
         ...s,
         listings: (listings || []).filter(l => l.user_id === s.user_id),
-      })) as StreamerWithProfile[];
+      })) as unknown as StreamerWithProfile[];
     },
   });
 }
