@@ -63,10 +63,10 @@ export const AdminVerificationsPage = () => {
                   <div key={d.id} className="rounded-xl border border-warning/20 bg-warning/5 p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground">
-                        {(d.profiles as any)?.display_name?.[0] || '?'}
+                        {(d as VerificationDocWithProfile).profiles?.display_name?.[0] || '?'}
                       </div>
                       <div>
-                        <p className="font-medium">{(d.profiles as any)?.display_name || 'User'}</p>
+                        <p className="font-medium">{(d as VerificationDocWithProfile).profiles?.display_name || 'User'}</p>
                         <p className="text-xs text-muted-foreground">{d.document_type} · <a href={d.file_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">View Document</a></p>
                       </div>
                     </div>
