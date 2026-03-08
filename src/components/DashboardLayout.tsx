@@ -23,6 +23,7 @@ const navByRole: Record<string, { to: string; label: string; icon: any }[]> = {
     { to: '/messages', label: 'Messages', icon: MessageSquare },
     { to: '/reports', label: 'Reports', icon: BarChart3 },
     { to: '/profile', label: 'Profile', icon: Settings },
+    { to: '/settings', label: 'Settings', icon: Settings },
   ],
   streamer: [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
