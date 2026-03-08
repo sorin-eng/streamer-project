@@ -6,6 +6,8 @@ import { Shield, CheckCircle2, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { TableSkeleton } from '@/components/PageSkeletons';
+import type { VerificationDocWithProfile, ProfileWithRole, AuditLogWithProfile } from '@/types/supabase-joins';
 
 export const AdminVerificationsPage = () => {
   const { data: docs, isLoading } = useVerificationDocuments();
