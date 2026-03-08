@@ -28,12 +28,12 @@ const LoginPage = () => {
     <div className="flex min-h-screen">
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-dark flex-col justify-between p-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 80%, hsl(263, 70%, 58%) 0%, transparent 50%), radial-gradient(circle at 80% 20%, hsl(40, 96%, 53%) 0%, transparent 40%)' }} />
-        <div className="relative flex items-center gap-2.5">
+        <Link to="/" className="relative flex items-center gap-2.5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-brand shadow-glow">
             <Radio className="h-5 w-5 text-primary-foreground" />
           </div>
           <span className="text-xl font-bold text-primary-foreground" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Castreamino</span>
-        </div>
+        </Link>
         <div className="relative">
           <h1 className="text-4xl font-bold text-primary-foreground leading-tight">
             Where Casinos<br />Meet Streamers
@@ -49,12 +49,12 @@ const LoginPage = () => {
 
       <div className="flex w-full lg:w-1/2 items-center justify-center p-8">
         <div className="w-full max-w-sm space-y-6 animate-slide-up">
-          <div className="lg:hidden flex items-center gap-2 mb-8">
+          <Link to="/" className="lg:hidden flex items-center gap-2 mb-8">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand">
               <Radio className="h-4 w-4 text-primary-foreground" />
             </div>
             <span className="text-lg font-bold" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Castreamino</span>
-          </div>
+          </Link>
 
           <div>
             <h2 className="text-2xl font-bold">Welcome back</h2>
