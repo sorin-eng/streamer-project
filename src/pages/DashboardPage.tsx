@@ -2,8 +2,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { StatCard } from '@/components/StatCard';
 import { StatusBadge } from '@/components/StatusBadge';
-import { useDashboardStats, useCampaigns, useDeals, useApplications } from '@/hooks/useSupabaseData';
-import { Megaphone, Handshake, DollarSign, Users, TrendingUp, Eye } from 'lucide-react';
+import { useDashboardStats, useCampaigns, useDeals, useApplications, useStreamerListings } from '@/hooks/useSupabaseData';
+import { Megaphone, Handshake, DollarSign, Users, TrendingUp, Eye, Tag, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
