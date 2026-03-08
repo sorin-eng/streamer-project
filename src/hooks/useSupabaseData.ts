@@ -555,6 +555,41 @@ export function useReportUploads() {
   });
 }
 
+// ---- Unread Deals ----
+export function useUnreadDeals() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['unread_deals', user?.id],
+    enabled: !!user,
+    refetchInterval: 15000,
+    queryFn: async () => {
+      if (!user) return 0;
+      // Get all deals for current user
+      const { data: deals } = await supabase
+        .from('deals')
+        .select('id')
+        .or(user.role === 'streamer' ? `streamer_id.eq.${user.id}` : `organization_id.eq.${user.organizationId}`);
+
+      if (!deals?.length) return 0;
+
+      let unread = 0;
+      for (const deal of deals) {
+        const { data: lastMsg } = await supabase
+          .from('deal_messages')
+          .select('sender_id')
+          .eq('deal_id', deal.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (lastMsg && lastMsg.sender_id !== user.id) {
+          unread++;
+        }
+      }
+      return unread;
+    },
+  });
+}
+
 // ---- Contracts ----
 export function useContracts(dealId?: string) {
   return useQuery({
