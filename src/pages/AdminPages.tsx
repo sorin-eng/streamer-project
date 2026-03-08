@@ -23,12 +23,9 @@ export const AdminVerificationsPage = () => {
       await updateVerification.mutateAsync({ id, status });
 
       const kycStatus = status === 'approved' ? 'verified' : 'rejected';
-      await supabase
-        .from('profiles')
-        .update({ kyc_status: kycStatus } as any)
-        .eq('user_id', userId);
+      await updateProfileKycStatus(userId, kycStatus);
 
-      await supabase.rpc('log_compliance_event' as any, {
+      await rpcLogComplianceEvent({
         _event_type: status === 'approved' ? 'kyc.approved' : 'kyc.rejected',
         _entity_type: 'user',
         _entity_id: userId,
