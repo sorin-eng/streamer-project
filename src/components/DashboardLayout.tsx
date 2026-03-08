@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { ComplianceBypassBanner } from '@/components/ComplianceBypassBanner';
 import { useUnreadDeals } from '@/hooks/useSupabaseData';
 import { NotificationBell } from '@/components/NotificationBell';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { NotificationBell } from '@/components/NotificationBell';
 
 const navByRole: Record<string, { to: string; label: string; icon: any }[]> = {
   casino_manager: [
