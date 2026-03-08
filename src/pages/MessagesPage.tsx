@@ -51,7 +51,7 @@ const MessagesPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-[calc(100vh-10rem)] animate-fade-in">
+      <div className="flex flex-col h-[calc(100dvh-10rem)] animate-fade-in">
         {/* Mobile deal selector */}
         <div className="md:hidden mb-3">
           <Select value={selectedDeal || ''} onValueChange={setSelectedDeal}>
