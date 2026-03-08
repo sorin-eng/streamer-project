@@ -50,7 +50,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use service role for webhook delivery
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -68,7 +67,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get active endpoints for this org and event
     const { data: endpoints } = await adminClient
       .from("webhook_endpoints")
       .select("*")
@@ -97,7 +95,6 @@ Deno.serve(async (req) => {
 
       const signature = await hmacSign(endpoint.secret, payloadStr);
 
-      // Create delivery record
       const { data: delivery } = await adminClient
         .from("webhook_deliveries")
         .insert({
@@ -109,7 +106,6 @@ Deno.serve(async (req) => {
         .select("id")
         .single();
 
-      // Attempt delivery
       try {
         const response = await fetch(endpoint.url, {
           method: "POST",
