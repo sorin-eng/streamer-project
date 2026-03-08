@@ -28,6 +28,7 @@ const SignupPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ageConfirmed) { setError('You must confirm you are 18+'); return; }
+    if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
     setError('');
     setLoading(true);
     const result = await signup(email, password, role, displayName);
@@ -70,7 +71,7 @@ const SignupPage = () => {
 
           {error && (
             <div className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
-              <AlertCircle className="h-4 w-4" />{error}
+              <AlertCircle className="h-4 w-4 shrink-0" />{error}
             </div>
           )}
 
@@ -107,7 +108,8 @@ const SignupPage = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
+              <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
+              <p className="text-xs text-muted-foreground">Minimum 6 characters</p>
             </div>
             <label className="flex items-start gap-2 text-sm">
               <input type="checkbox" checked={ageConfirmed} onChange={e => setAgeConfirmed(e.target.checked)} className="mt-1 rounded border-border" />

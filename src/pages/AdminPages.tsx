@@ -20,14 +20,12 @@ export const AdminVerificationsPage = () => {
     try {
       await updateVerification.mutateAsync({ id, status });
 
-      // Update profile KYC status
       const kycStatus = status === 'approved' ? 'verified' : 'rejected';
-      await (supabase as any)
+      await supabase
         .from('profiles')
-        .update({ kyc_status: kycStatus })
+        .update({ kyc_status: kycStatus } as any)
         .eq('user_id', userId);
 
-      // Log compliance event
       await supabase.rpc('log_compliance_event' as any, {
         _event_type: status === 'approved' ? 'kyc.approved' : 'kyc.rejected',
         _entity_type: 'user',
@@ -184,7 +182,7 @@ export const AdminAuditPage = () => {
                     <td className="px-4 py-3 text-muted-foreground text-xs font-mono">{new Date(log.created_at).toLocaleString()}</td>
                     <td className="px-4 py-3 text-xs">{(log.profiles as any)?.display_name || 'System'}</td>
                     <td className="px-4 py-3"><span className="inline-flex rounded bg-accent px-2 py-0.5 text-xs font-mono text-accent-foreground">{log.action}</span></td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{JSON.stringify(log.details)}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground max-w-xs truncate">{JSON.stringify(log.details)}</td>
                   </tr>
                 ))}
                 {(!logs || logs.length === 0) && (

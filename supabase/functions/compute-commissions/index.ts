@@ -45,13 +45,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use service role for computation
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Get deal
     const { data: deal, error: dealErr } = await adminClient
       .from("deals")
       .select("*")
@@ -65,7 +63,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get commission rules for the deal
     const { data: rules } = await adminClient
       .from("commission_rules")
       .select("*")
@@ -81,7 +78,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get conversion events for the period
     let eventsQuery = adminClient
       .from("conversion_events")
       .select("*")
@@ -102,7 +98,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Compute commissions
     const commissions: any[] = [];
 
     for (const rule of rules) {
@@ -115,28 +110,19 @@ Deno.serve(async (req) => {
       let amount = 0;
 
       if (rule.rule_type === "cpa") {
-        // CPA: fixed amount per qualifying event
         const qualifiedEvents = rule.min_deposit
           ? applicableEvents.filter((e) => (e.amount || 0) >= rule.min_deposit)
           : applicableEvents;
         amount = qualifiedEvents.length * (rule.cpa_amount || 0);
       } else if (rule.rule_type === "revshare") {
-        // Revshare: percentage of net revenue
-        const totalRevenue = applicableEvents.reduce(
-          (sum, e) => sum + (e.amount || 0),
-          0
-        );
+        const totalRevenue = applicableEvents.reduce((sum, e) => sum + (e.amount || 0), 0);
         amount = totalRevenue * ((rule.revshare_pct || 0) / 100);
       } else if (rule.rule_type === "hybrid") {
-        // Hybrid: CPA + revshare
         const qualifiedEvents = rule.min_deposit
           ? applicableEvents.filter((e) => (e.amount || 0) >= rule.min_deposit)
           : applicableEvents;
         const cpaAmount = qualifiedEvents.length * (rule.cpa_amount || 0);
-        const totalRevenue = applicableEvents.reduce(
-          (sum, e) => sum + (e.amount || 0),
-          0
-        );
+        const totalRevenue = applicableEvents.reduce((sum, e) => sum + (e.amount || 0), 0);
         const revshareAmount = totalRevenue * ((rule.revshare_pct || 0) / 100);
         amount = cpaAmount + revshareAmount;
       }
@@ -161,7 +147,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Log compliance
     await adminClient.rpc("log_compliance_event", {
       _event_type: "commission.computed",
       _entity_type: "deal",

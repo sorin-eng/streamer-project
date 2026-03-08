@@ -4,12 +4,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { StatCard } from '@/components/StatCard';
 import { useCommissions, useReportUploads, useDeals } from '@/hooks/useSupabaseData';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Users, BarChart3, Upload } from 'lucide-react';
+import { DollarSign, Users, BarChart3, Upload, Calculator } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -20,9 +21,14 @@ const ReportsPage = () => {
   const { data: uploads } = useReportUploads();
   const { data: deals } = useDeals();
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [computeOpen, setComputeOpen] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState('');
+  const [computeDeal, setComputeDeal] = useState('');
+  const [periodStart, setPeriodStart] = useState('');
+  const [periodEnd, setPeriodEnd] = useState('');
   const [csvData, setCsvData] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [computing, setComputing] = useState(false);
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -34,7 +40,6 @@ const ReportsPage = () => {
     if (!selectedDeal || !csvData.trim()) return;
     setUploading(true);
     try {
-      // Parse CSV-like data (each line: event_type,event_date,amount,player_id)
       const lines = csvData.trim().split('\n').filter(l => l.trim());
       const rows = lines.map(line => {
         const [event_type, event_date, amount, player_id] = line.split(',').map(s => s.trim());
@@ -62,6 +67,32 @@ const ReportsPage = () => {
     setUploading(false);
   };
 
+  const handleCompute = async () => {
+    if (!computeDeal) return;
+    setComputing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('compute-commissions', {
+        body: {
+          deal_id: computeDeal,
+          period_start: periodStart || undefined,
+          period_end: periodEnd || undefined,
+        },
+      });
+
+      if (error) throw error;
+      const result = data.data;
+      toast({
+        title: 'Commissions computed',
+        description: `${result.commissions.length} commission(s) created from ${result.events_processed} events`,
+      });
+      setComputeOpen(false);
+      qc.invalidateQueries({ queryKey: ['commissions'] });
+    } catch (err: any) {
+      toast({ title: 'Computation failed', description: err.message, variant: 'destructive' });
+    }
+    setComputing(false);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
@@ -73,9 +104,14 @@ const ReportsPage = () => {
             </p>
           </div>
           {user?.role === 'casino_manager' && (
-            <Button className="bg-gradient-brand hover:opacity-90" onClick={() => setUploadOpen(true)}>
-              <Upload className="mr-2 h-4 w-4" />Upload Report
-            </Button>
+            <div className="flex gap-2">
+              <Button className="bg-gradient-brand hover:opacity-90" onClick={() => setUploadOpen(true)}>
+                <Upload className="mr-2 h-4 w-4" />Upload Report
+              </Button>
+              <Button variant="outline" onClick={() => setComputeOpen(true)}>
+                <Calculator className="mr-2 h-4 w-4" />Compute Commissions
+              </Button>
+            </div>
           )}
         </div>
 
@@ -165,6 +201,44 @@ const ReportsPage = () => {
               disabled={uploading || !selectedDeal || !csvData.trim()}
             >
               {uploading ? 'Processing...' : 'Upload & Process'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Compute Commissions Dialog */}
+      <Dialog open={computeOpen} onOpenChange={setComputeOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Compute Commissions</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Select Deal</Label>
+              <Select value={computeDeal} onValueChange={setComputeDeal}>
+                <SelectTrigger><SelectValue placeholder="Choose a deal..." /></SelectTrigger>
+                <SelectContent>
+                  {(deals || []).map(d => (
+                    <SelectItem key={d.id} value={d.id}>{(d.campaigns as any)?.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Period Start</Label>
+                <Input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Period End</Label>
+                <Input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">Leave dates empty to compute for all conversion events.</p>
+            <Button
+              className="w-full bg-gradient-brand hover:opacity-90"
+              onClick={handleCompute}
+              disabled={computing || !computeDeal}
+            >
+              {computing ? 'Computing...' : 'Compute Now'}
             </Button>
           </div>
         </DialogContent>

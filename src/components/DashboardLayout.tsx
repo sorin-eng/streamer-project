@@ -14,6 +14,7 @@ const navByRole: Record<string, { to: string; label: string; icon: any }[]> = {
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/campaigns', label: 'Campaigns', icon: Megaphone },
     { to: '/deals', label: 'Deals', icon: Handshake },
+    { to: '/contracts', label: 'Contracts', icon: FileText },
     { to: '/messages', label: 'Messages', icon: MessageSquare },
     { to: '/reports', label: 'Reports', icon: BarChart3 },
     { to: '/profile', label: 'Profile', icon: Settings },
@@ -22,6 +23,7 @@ const navByRole: Record<string, { to: string; label: string; icon: any }[]> = {
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/campaigns', label: 'Browse Campaigns', icon: Megaphone },
     { to: '/deals', label: 'My Deals', icon: Handshake },
+    { to: '/contracts', label: 'Contracts', icon: FileText },
     { to: '/messages', label: 'Messages', icon: MessageSquare },
     { to: '/reports', label: 'Earnings', icon: BarChart3 },
     { to: '/profile', label: 'Profile', icon: Settings },
@@ -32,6 +34,7 @@ const navByRole: Record<string, { to: string; label: string; icon: any }[]> = {
     { to: '/admin/users', label: 'Users', icon: Users },
     { to: '/campaigns', label: 'Campaigns', icon: Megaphone },
     { to: '/deals', label: 'Deals', icon: Handshake },
+    { to: '/contracts', label: 'Contracts', icon: FileText },
     { to: '/admin/audit', label: 'Audit Log', icon: FileText },
   ],
 };
@@ -71,7 +74,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4">
+        <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
           {navItems.map(item => {
             const active = location.pathname === item.to;
             return (

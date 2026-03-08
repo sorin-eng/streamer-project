@@ -39,13 +39,11 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { action, entity_type, entity_id, country } = body;
 
-    // Use service role for checking
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Check user compliance status
     const { data: compliance } = await adminClient.rpc("check_user_compliance", {
       _user_id: userId,
     });
@@ -57,31 +55,25 @@ Deno.serve(async (req) => {
       blockers: [],
     };
 
-    // Check age gate
     if (!compliance?.age_verified) {
       result.gate_passed = false;
       result.blockers.push("age_verification_required");
     }
-
-    // Check terms acceptance
     if (!compliance?.terms_accepted) {
       result.gate_passed = false;
       result.blockers.push("terms_acceptance_required");
     }
-
     if (!compliance?.privacy_accepted) {
       result.gate_passed = false;
       result.blockers.push("privacy_acceptance_required");
     }
 
-    // For actions that require KYC (deal signing, contract, reports)
     const kycRequiredActions = ["sign_contract", "upload_report", "create_deal", "submit_application"];
     if (kycRequiredActions.includes(action) && compliance?.kyc_status !== "verified") {
       result.gate_passed = false;
       result.blockers.push(`kyc_${compliance?.kyc_status || "unverified"}`);
     }
 
-    // Geo restriction check
     if (country && entity_type && entity_id) {
       const { data: geoBlock } = await adminClient
         .from("geo_restrictions")
@@ -98,7 +90,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Log compliance check
     const eventType = result.gate_passed ? "compliance.verified" : "compliance.blocked";
     await adminClient.rpc("log_compliance_event", {
       _event_type: eventType,

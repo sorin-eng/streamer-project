@@ -48,7 +48,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify deal access
     const { data: deal, error: dealErr } = await supabase
       .from("deals")
       .select("id, organization_id")
@@ -62,7 +61,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get org membership for RLS
     const { data: orgMember } = await supabase
       .from("organization_members")
       .select("id")
@@ -77,7 +75,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create report upload record
+    // Use service role for insert/update operations to avoid RLS issues
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
     const { data: upload, error: uploadErr } = await supabase
       .from("report_uploads")
       .insert({
@@ -97,7 +100,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Parse rows into conversion_events
     const events = rows.map((row: any) => ({
       deal_id,
       event_type: row.event_type || "ftd",
@@ -113,9 +115,9 @@ Deno.serve(async (req) => {
       .from("conversion_events")
       .insert(events);
 
-    // Update upload status
+    // Use admin client for status update to bypass RLS
     const finalStatus = eventsErr ? "failed" : "completed";
-    await supabase
+    await adminClient
       .from("report_uploads")
       .update({
         status: finalStatus,
@@ -123,8 +125,7 @@ Deno.serve(async (req) => {
       })
       .eq("id", upload.id);
 
-    // Log compliance event
-    await supabase.rpc("log_compliance_event", {
+    await adminClient.rpc("log_compliance_event", {
       _event_type: "report.uploaded",
       _entity_type: "report_upload",
       _entity_id: upload.id,
@@ -132,7 +133,6 @@ Deno.serve(async (req) => {
       _severity: eventsErr ? "warning" : "info",
     });
 
-    // Log audit
     await supabase.rpc("log_audit", {
       _action: "UPLOAD_REPORT",
       _entity_type: "report_upload",
