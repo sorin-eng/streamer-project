@@ -134,6 +134,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex-1" />
+          <ThemeToggle />
           <NotificationBell />
           <span className="inline-flex items-center rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
             {user.verified ? '✓ Verified' : '⏳ Pending Verification'}
