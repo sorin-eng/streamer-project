@@ -966,60 +966,135 @@ export type Database = {
           },
         ]
       }
+      streamer_listings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          min_streams: number | null
+          package_details: string | null
+          platforms: string[]
+          price_amount: number | null
+          price_currency: string
+          pricing_type: Database["public"]["Enums"]["listing_pricing_type"]
+          status: Database["public"]["Enums"]["listing_status"]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          min_streams?: number | null
+          package_details?: string | null
+          platforms?: string[]
+          price_amount?: number | null
+          price_currency?: string
+          pricing_type?: Database["public"]["Enums"]["listing_pricing_type"]
+          status?: Database["public"]["Enums"]["listing_status"]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          min_streams?: number | null
+          package_details?: string | null
+          platforms?: string[]
+          price_amount?: number | null
+          price_currency?: string
+          pricing_type?: Database["public"]["Enums"]["listing_pricing_type"]
+          status?: Database["public"]["Enums"]["listing_status"]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       streamer_profiles: {
         Row: {
           audience_geo: string[]
           avg_live_viewers: number
           bio: string | null
           created_at: string
+          discord_url: string | null
           engagement_rate: number
           follower_count: number
           id: string
+          instagram_url: string | null
+          kick_url: string | null
           monthly_impressions: number
           niche_type: string | null
           past_deals: number
           payment_preference: string | null
           platforms: string[]
+          preferred_crypto: string | null
           restricted_countries: string[]
+          tiktok_url: string | null
+          twitch_url: string | null
+          twitter_url: string | null
           updated_at: string
           user_id: string
           verified: Database["public"]["Enums"]["verification_status"]
+          wallet_address: string | null
+          youtube_url: string | null
         }
         Insert: {
           audience_geo?: string[]
           avg_live_viewers?: number
           bio?: string | null
           created_at?: string
+          discord_url?: string | null
           engagement_rate?: number
           follower_count?: number
           id?: string
+          instagram_url?: string | null
+          kick_url?: string | null
           monthly_impressions?: number
           niche_type?: string | null
           past_deals?: number
           payment_preference?: string | null
           platforms?: string[]
+          preferred_crypto?: string | null
           restricted_countries?: string[]
+          tiktok_url?: string | null
+          twitch_url?: string | null
+          twitter_url?: string | null
           updated_at?: string
           user_id: string
           verified?: Database["public"]["Enums"]["verification_status"]
+          wallet_address?: string | null
+          youtube_url?: string | null
         }
         Update: {
           audience_geo?: string[]
           avg_live_viewers?: number
           bio?: string | null
           created_at?: string
+          discord_url?: string | null
           engagement_rate?: number
           follower_count?: number
           id?: string
+          instagram_url?: string | null
+          kick_url?: string | null
           monthly_impressions?: number
           niche_type?: string | null
           past_deals?: number
           payment_preference?: string | null
           platforms?: string[]
+          preferred_crypto?: string | null
           restricted_countries?: string[]
+          tiktok_url?: string | null
+          twitch_url?: string | null
+          twitter_url?: string | null
           updated_at?: string
           user_id?: string
           verified?: Database["public"]["Enums"]["verification_status"]
+          wallet_address?: string | null
+          youtube_url?: string | null
         }
         Relationships: []
       }
@@ -1275,6 +1350,12 @@ export type Database = {
         | "net_revenue"
         | "chargeback"
       deal_type: "revshare" | "cpa" | "hybrid" | "flat_fee"
+      listing_pricing_type:
+        | "fixed_per_stream"
+        | "fixed_package"
+        | "hourly"
+        | "negotiable"
+      listing_status: "active" | "paused" | "closed"
       payout_status: "pending" | "processing" | "completed" | "failed"
       verification_status: "pending" | "approved" | "rejected"
     }
@@ -1442,6 +1523,13 @@ export const Constants = {
         "chargeback",
       ],
       deal_type: ["revshare", "cpa", "hybrid", "flat_fee"],
+      listing_pricing_type: [
+        "fixed_per_stream",
+        "fixed_package",
+        "hourly",
+        "negotiable",
+      ],
+      listing_status: ["active", "paused", "closed"],
       payout_status: ["pending", "processing", "completed", "failed"],
       verification_status: ["pending", "approved", "rejected"],
     },

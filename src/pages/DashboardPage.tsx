@@ -2,21 +2,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { StatCard } from '@/components/StatCard';
 import { StatusBadge } from '@/components/StatusBadge';
-import { useDashboardStats, useCampaigns, useDeals, useApplications } from '@/hooks/useSupabaseData';
-import { Megaphone, Handshake, DollarSign, Users, TrendingUp, Eye } from 'lucide-react';
+import { useDashboardStats, useCampaigns, useDeals, useApplications, useStreamerListings } from '@/hooks/useSupabaseData';
+import { Megaphone, Handshake, DollarSign, Users, TrendingUp, Eye, Tag, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 const CasinoDashboard = () => {
   const { data: stats } = useDashboardStats();
   const { data: campaigns } = useCampaigns();
-  const { data: applications } = useApplications();
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold">Casino Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Manage campaigns and streamer partnerships</p>
+        <p className="text-sm text-muted-foreground">Find streamers and manage partnerships</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Active Campaigns" value={stats?.activeCampaigns ?? 0} icon={<Megaphone className="h-5 w-5" />} />
@@ -24,6 +23,16 @@ const CasinoDashboard = () => {
         <StatCard label="Total Spend" value={`$${(stats?.totalSpend ?? 0).toLocaleString()}`} icon={<DollarSign className="h-5 w-5" />} />
         <StatCard label="Applications" value={stats?.applicationCount ?? 0} icon={<Users className="h-5 w-5" />} />
       </div>
+
+      {/* Browse Streamers CTA */}
+      <div className="rounded-xl border border-primary/20 bg-primary/[0.03] p-6 flex items-center justify-between">
+        <div>
+          <h2 className="font-semibold text-lg">Discover Streamers</h2>
+          <p className="text-sm text-muted-foreground">Browse verified streamers, view their listings, and reach out directly.</p>
+        </div>
+        <Link to="/streamers"><Button className="bg-gradient-brand hover:opacity-90"><Search className="mr-2 h-4 w-4" />Browse Streamers</Button></Link>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-border bg-card p-5 shadow-card">
           <div className="flex items-center justify-between mb-4">
@@ -43,50 +52,57 @@ const CasinoDashboard = () => {
             {(!campaigns || campaigns.length === 0) && <p className="text-sm text-muted-foreground">No campaigns yet</p>}
           </div>
         </div>
-        <div className="rounded-xl border border-border bg-card p-5 shadow-card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold">Recent Applications</h2>
-          </div>
-          <div className="space-y-3">
-            {(applications || []).slice(0, 3).map(a => (
-              <div key={a.id} className="flex items-center justify-between rounded-lg border border-border p-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
-                    {(a.profiles as any)?.display_name?.[0] || '?'}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{(a.profiles as any)?.display_name || 'Streamer'}</p>
-                    <p className="text-xs text-muted-foreground">{(a.streamer_profiles as any)?.avg_live_viewers || 0} avg viewers</p>
-                  </div>
-                </div>
-                <StatusBadge status={a.status} />
-              </div>
-            ))}
-            {(!applications || applications.length === 0) && <p className="text-sm text-muted-foreground">No applications yet</p>}
-          </div>
-        </div>
       </div>
     </div>
   );
 };
 
 const StreamerDashboard = () => {
+  const { user } = useAuth();
   const { data: stats } = useDashboardStats();
   const { data: deals } = useDeals();
-  const { data: campaigns } = useCampaigns();
+  const { data: listings } = useStreamerListings(user?.id);
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold">Streamer Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Your partnerships and opportunities</p>
+        <p className="text-sm text-muted-foreground">Your listings and partnerships</p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Active Listings" value={listings?.filter(l => l.status === 'active').length ?? 0} icon={<Tag className="h-5 w-5" />} />
         <StatCard label="Active Deals" value={stats?.activeDeals ?? 0} icon={<Handshake className="h-5 w-5" />} />
         <StatCard label="Total Earnings" value={`$${(stats?.totalEarnings ?? 0).toLocaleString()}`} icon={<DollarSign className="h-5 w-5" />} />
         <StatCard label="Open Campaigns" value={stats?.openCampaigns ?? 0} icon={<Megaphone className="h-5 w-5" />} />
       </div>
+
       <div className="grid gap-6 lg:grid-cols-2">
+        {/* My Listings */}
+        <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold">My Listings</h2>
+            <Link to="/listings"><Button variant="ghost" size="sm">Manage</Button></Link>
+          </div>
+          <div className="space-y-3">
+            {(listings || []).slice(0, 3).map(l => (
+              <div key={l.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div>
+                  <p className="text-sm font-medium">{l.title}</p>
+                  <p className="text-xs text-muted-foreground">{l.price_amount} {l.price_currency} · {l.pricing_type?.replace('_', ' ')}</p>
+                </div>
+                <StatusBadge status={l.status} />
+              </div>
+            ))}
+            {(!listings || listings.length === 0) && (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground mb-2">No listings yet</p>
+                <Link to="/listings"><Button size="sm" className="bg-gradient-brand hover:opacity-90">Create Listing</Button></Link>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* My Deals */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-card">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold">My Deals</h2>
@@ -103,23 +119,6 @@ const StreamerDashboard = () => {
               </div>
             ))}
             {(!deals || deals.length === 0) && <p className="text-sm text-muted-foreground">No deals yet</p>}
-          </div>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-5 shadow-card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold">Open Campaigns</h2>
-            <Link to="/campaigns"><Button variant="ghost" size="sm">Browse All</Button></Link>
-          </div>
-          <div className="space-y-3">
-            {(campaigns || []).filter(c => c.status === 'open').slice(0, 3).map(c => (
-              <Link key={c.id} to="/campaigns" className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-accent/50 transition-colors">
-                <div>
-                  <p className="text-sm font-medium">{c.title}</p>
-                  <p className="text-xs text-muted-foreground">{(c.organizations as any)?.name} · {c.target_geo?.join(', ')}</p>
-                </div>
-                <StatusBadge status={c.deal_type} />
-              </Link>
-            ))}
           </div>
         </div>
       </div>

@@ -373,6 +373,104 @@ export function useDashboardStats() {
   });
 }
 
+// ---- Streamer Listings ----
+export function useStreamerListings(userId?: string) {
+  return useQuery({
+    queryKey: ['streamer_listings', userId],
+    queryFn: async () => {
+      let q = supabase
+        .from('streamer_listings')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (userId) q = q.eq('user_id', userId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useCreateListing() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async (values: {
+      title: string;
+      description: string;
+      pricing_type: string;
+      price_amount: number;
+      price_currency: string;
+      min_streams?: number;
+      package_details?: string;
+      platforms: string[];
+    }) => {
+      if (!user) throw new Error('Not authenticated');
+      const { data, error } = await supabase
+        .from('streamer_listings')
+        .insert({ ...values, user_id: user.id, pricing_type: values.pricing_type as any })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['streamer_listings'] }),
+  });
+}
+
+export function useUpdateListing() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...values }: { id: string; [key: string]: any }) => {
+      const { error } = await supabase
+        .from('streamer_listings')
+        .update(values)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['streamer_listings'] }),
+  });
+}
+
+export function useDeleteListing() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('streamer_listings')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['streamer_listings'] }),
+  });
+}
+
+export function useBrowseStreamers() {
+  return useQuery({
+    queryKey: ['browse_streamers'],
+    queryFn: async () => {
+      const { data: streamers, error } = await supabase
+        .from('streamer_profiles')
+        .select('*, profiles:user_id(display_name, avatar_url)')
+        .order('avg_live_viewers', { ascending: false });
+      if (error) throw error;
+      
+      // Fetch active listings for all streamers
+      const userIds = streamers?.map(s => s.user_id) || [];
+      const { data: listings } = await supabase
+        .from('streamer_listings')
+        .select('*')
+        .in('user_id', userIds)
+        .eq('status', 'active');
+      
+      return (streamers || []).map(s => ({
+        ...s,
+        listings: (listings || []).filter(l => l.user_id === s.user_id),
+      }));
+    },
+  });
+}
+
 // ---- Commissions ----
 export function useCommissions() {
   const { user } = useAuth();
