@@ -77,8 +77,9 @@ const ListingsPage = () => {
       }
       setDialogOpen(false);
       setEditingId(null);
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
 
@@ -86,8 +87,9 @@ const ListingsPage = () => {
     try {
       await deleteListing.mutateAsync(id);
       toast({ title: 'Listing deleted' });
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
 
@@ -96,8 +98,9 @@ const ListingsPage = () => {
     try {
       await updateListing.mutateAsync({ id, status: newStatus });
       toast({ title: `Listing ${newStatus === 'active' ? 'activated' : 'paused'}` });
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
 

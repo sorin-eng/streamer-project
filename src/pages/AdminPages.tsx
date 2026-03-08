@@ -4,8 +4,8 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Shield, CheckCircle2, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { updateProfileKycStatus, rpcLogComplianceEvent } from '@/lib/supabaseHelpers';
 import { TableSkeleton } from '@/components/PageSkeletons';
 import type { VerificationDocWithProfile, ProfileWithRole, AuditLogWithProfile } from '@/types/supabase-joins';
 
