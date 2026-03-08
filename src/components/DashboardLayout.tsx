@@ -34,6 +34,7 @@ const navByRole: Record<string, { to: string; label: string; icon: any }[]> = {
     { to: '/messages', label: 'Messages', icon: MessageSquare },
     { to: '/reports', label: 'Earnings', icon: BarChart3 },
     { to: '/profile', label: 'Profile', icon: Settings },
+    { to: '/settings', label: 'Settings', icon: Settings },
   ],
   admin: [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
