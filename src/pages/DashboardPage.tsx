@@ -7,7 +7,7 @@ import { ProfileCompleteness } from '@/components/ProfileCompleteness';
 import { OnboardingWizard } from '@/components/OnboardingWizard';
 import { useDashboardStats, useCampaigns, useDeals, useStreamerListings, useStreamerProfile } from '@/hooks/useSupabaseData';
 import { useComplianceStatus } from '@/hooks/useCompliance';
-import { Megaphone, Handshake, DollarSign, Users, TrendingUp, Tag, Search } from 'lucide-react';
+import { Megaphone, Handshake, DollarSign, Users, TrendingUp, Tag, Search, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import type { DealWithRelations, CampaignWithOrg } from '@/types/supabase-joins';
