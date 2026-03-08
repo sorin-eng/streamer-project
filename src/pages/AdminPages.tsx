@@ -4,8 +4,8 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Shield, CheckCircle2, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { updateProfileKycStatus, rpcLogComplianceEvent } from '@/lib/supabaseHelpers';
 import { TableSkeleton } from '@/components/PageSkeletons';
 import type { VerificationDocWithProfile, ProfileWithRole, AuditLogWithProfile } from '@/types/supabase-joins';
 
@@ -23,12 +23,9 @@ export const AdminVerificationsPage = () => {
       await updateVerification.mutateAsync({ id, status });
 
       const kycStatus = status === 'approved' ? 'verified' : 'rejected';
-      await supabase
-        .from('profiles')
-        .update({ kyc_status: kycStatus } as any)
-        .eq('user_id', userId);
+      await updateProfileKycStatus(userId, kycStatus);
 
-      await supabase.rpc('log_compliance_event' as any, {
+      await rpcLogComplianceEvent({
         _event_type: status === 'approved' ? 'kyc.approved' : 'kyc.rejected',
         _entity_type: 'user',
         _entity_id: userId,
@@ -63,10 +60,10 @@ export const AdminVerificationsPage = () => {
                   <div key={d.id} className="rounded-xl border border-warning/20 bg-warning/5 p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground">
-                        {(d.profiles as any)?.display_name?.[0] || '?'}
+                        {(d as VerificationDocWithProfile).profiles?.display_name?.[0] || '?'}
                       </div>
                       <div>
-                        <p className="font-medium">{(d.profiles as any)?.display_name || 'User'}</p>
+                        <p className="font-medium">{(d as VerificationDocWithProfile).profiles?.display_name || 'User'}</p>
                         <p className="text-xs text-muted-foreground">{d.document_type} · <a href={d.file_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">View Document</a></p>
                       </div>
                     </div>
@@ -90,10 +87,10 @@ export const AdminVerificationsPage = () => {
                   <div key={d.id} className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground">
-                        {(d.profiles as any)?.display_name?.[0] || '?'}
+                        {(d as VerificationDocWithProfile).profiles?.display_name?.[0] || '?'}
                       </div>
                       <div>
-                        <p className="font-medium">{(d.profiles as any)?.display_name || 'User'}</p>
+                        <p className="font-medium">{(d as VerificationDocWithProfile).profiles?.display_name || 'User'}</p>
                         <p className="text-xs text-muted-foreground">{d.document_type}</p>
                       </div>
                     </div>

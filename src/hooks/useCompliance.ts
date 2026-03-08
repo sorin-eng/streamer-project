@@ -2,14 +2,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { complianceBypass } from '@/config/complianceBypass';
-
-interface ComplianceStatus {
-  age_verified: boolean;
-  kyc_status: string;
-  terms_accepted: boolean;
-  privacy_accepted: boolean;
-  fully_compliant: boolean;
-}
+import {
+  type ComplianceStatus,
+  rpcCheckUserCompliance,
+  rpcLogComplianceEvent,
+  upsertAgeVerification,
+  insertDisclaimerAcceptance,
+  queryDisclaimerAcceptance,
+  updateProfileKycStatus,
+} from '@/lib/supabaseHelpers';
 
 interface ComplianceGateResult {
   user_compliance: ComplianceStatus;
@@ -19,44 +20,32 @@ interface ComplianceGateResult {
 }
 
 async function applyBypass(userId: string): Promise<ComplianceStatus> {
-  await (supabase.from('age_verifications') as any)
-    .upsert({
-      user_id: userId,
-      date_of_birth: '1990-01-01',
-      min_age_required: 18,
-      jurisdiction: 'dev-default',
-    }, { onConflict: 'user_id' });
+  await upsertAgeVerification({
+    user_id: userId,
+    date_of_birth: '1990-01-01',
+    min_age_required: 18,
+    jurisdiction: 'dev-default',
+  });
 
   for (const dtype of ['terms', 'privacy']) {
-    const { data: existing } = await (supabase.from('disclaimer_acceptances') as any)
-      .select('id')
-      .eq('user_id', userId)
-      .eq('disclaimer_type', dtype)
-      .maybeSingle();
-
+    const { data: existing } = await queryDisclaimerAcceptance(userId, dtype);
     if (!existing) {
-      await (supabase.from('disclaimer_acceptances') as any)
-        .insert({
-          user_id: userId,
-          disclaimer_type: dtype,
-          disclaimer_version: 'dev-default',
-        });
+      await insertDisclaimerAcceptance({
+        user_id: userId,
+        disclaimer_type: dtype,
+        disclaimer_version: 'dev-default',
+      });
     }
   }
 
-  await supabase
-    .from('profiles')
-    .update({ kyc_status: 'verified' } as any)
-    .eq('user_id', userId);
+  await updateProfileKycStatus(userId, 'verified');
 
-  try {
-    await supabase.rpc('log_compliance_event' as any, {
-      _event_type: 'compliance.bypass_applied',
-      _entity_type: 'user',
-      _details: { bypass_mode: true },
-      _severity: 'warning',
-    });
-  } catch {}
+  await rpcLogComplianceEvent({
+    _event_type: 'compliance.bypass_applied',
+    _entity_type: 'user',
+    _details: { bypass_mode: true },
+    _severity: 'warning',
+  });
 
   return {
     age_verified: true,
@@ -75,11 +64,12 @@ export function useComplianceStatus() {
     queryFn: async (): Promise<ComplianceStatus> => {
       if (!user) throw new Error('No user');
 
-      const { data, error } = await supabase.rpc('check_user_compliance' as any, {
-        _user_id: user.id,
-      });
-
-      const compliance = (error ? null : data) as ComplianceStatus | null;
+      let compliance: ComplianceStatus | null = null;
+      try {
+        compliance = await rpcCheckUserCompliance(user.id);
+      } catch {
+        // Will be handled below
+      }
 
       if (complianceBypass.isEnabled) {
         if (!compliance || !compliance.fully_compliant) {
@@ -87,8 +77,8 @@ export function useComplianceStatus() {
         }
       }
 
-      if (error) throw error;
-      return compliance as ComplianceStatus;
+      if (!compliance) throw new Error('Failed to check compliance');
+      return compliance;
     },
     staleTime: 30000,
   });
@@ -103,14 +93,12 @@ export function useComplianceGate() {
       country?: string;
     }): Promise<ComplianceGateResult> => {
       if (complianceBypass.isEnabled) {
-        try {
-          await supabase.rpc('log_compliance_event' as any, {
-            _event_type: 'compliance.bypass_applied',
-            _entity_type: params.entity_type || 'action',
-            _details: { action: params.action, bypass_mode: true },
-            _severity: 'warning',
-          });
-        } catch {}
+        await rpcLogComplianceEvent({
+          _event_type: 'compliance.bypass_applied',
+          _entity_type: params.entity_type || 'action',
+          _details: { action: params.action, bypass_mode: true },
+          _severity: 'warning',
+        });
 
         return {
           user_compliance: {
@@ -145,42 +133,36 @@ export function useSubmitAgeVerification() {
       min_age?: number;
     }) => {
       if (!user) throw new Error('Not authenticated');
-      
+
       const dob = new Date(params.date_of_birth);
       const today = new Date();
       const age = today.getFullYear() - dob.getFullYear();
       const minAge = params.min_age || 18;
-      
+
       if (age < minAge) {
-        try {
-          await supabase.rpc('log_compliance_event' as any, {
-            _event_type: 'compliance.blocked',
-            _entity_type: 'user',
-            _details: { reason: 'underage', age, min_age: minAge },
-            _severity: 'critical',
-          });
-        } catch {}
+        await rpcLogComplianceEvent({
+          _event_type: 'compliance.blocked',
+          _entity_type: 'user',
+          _details: { reason: 'underage', age, min_age: minAge },
+          _severity: 'critical',
+        });
         throw new Error(`You must be at least ${minAge} years old`);
       }
 
-      const { error } = await (supabase.from('age_verifications') as any)
-        .upsert({
-          user_id: user.id,
-          date_of_birth: params.date_of_birth,
-          min_age_required: minAge,
-          jurisdiction: params.jurisdiction || null,
-        }, { onConflict: 'user_id' });
-      
+      const { error } = await upsertAgeVerification({
+        user_id: user.id,
+        date_of_birth: params.date_of_birth,
+        min_age_required: minAge,
+        jurisdiction: params.jurisdiction || null,
+      });
       if (error) throw error;
 
-      try {
-        await supabase.rpc('log_compliance_event' as any, {
-          _event_type: 'compliance.verified',
-          _entity_type: 'user',
-          _details: { gate: 'age_verification', jurisdiction: params.jurisdiction },
-          _severity: 'info',
-        });
-      } catch {}
+      await rpcLogComplianceEvent({
+        _event_type: 'compliance.verified',
+        _entity_type: 'user',
+        _details: { gate: 'age_verification', jurisdiction: params.jurisdiction },
+        _severity: 'info',
+      });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['compliance_status'] }),
   });
@@ -195,22 +177,19 @@ export function useAcceptDisclaimer() {
       disclaimer_version?: string;
     }) => {
       if (!user) throw new Error('Not authenticated');
-      const { error } = await (supabase.from('disclaimer_acceptances') as any)
-        .insert({
-          user_id: user.id,
-          disclaimer_type: params.disclaimer_type,
-          disclaimer_version: params.disclaimer_version || '1.0',
-        });
+      const { error } = await insertDisclaimerAcceptance({
+        user_id: user.id,
+        disclaimer_type: params.disclaimer_type,
+        disclaimer_version: params.disclaimer_version || '1.0',
+      });
       if (error) throw error;
 
-      try {
-        await supabase.rpc('log_compliance_event' as any, {
-          _event_type: 'compliance.verified',
-          _entity_type: 'user',
-          _details: { gate: 'disclaimer', type: params.disclaimer_type, version: params.disclaimer_version || '1.0' },
-          _severity: 'info',
-        });
-      } catch {}
+      await rpcLogComplianceEvent({
+        _event_type: 'compliance.verified',
+        _entity_type: 'user',
+        _details: { gate: 'disclaimer', type: params.disclaimer_type, version: params.disclaimer_version || '1.0' },
+        _severity: 'info',
+      });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['compliance_status'] }),
   });
@@ -243,19 +222,14 @@ export function useSubmitKycDocument() {
         });
       if (docErr) throw docErr;
 
-      await supabase
-        .from('profiles')
-        .update({ kyc_status: 'pending' } as any)
-        .eq('user_id', user.id);
+      await updateProfileKycStatus(user.id, 'pending');
 
-      try {
-        await supabase.rpc('log_compliance_event' as any, {
-          _event_type: 'kyc.submitted',
-          _entity_type: 'user',
-          _details: { document_type: params.document_type },
-          _severity: 'info',
-        });
-      } catch {}
+      await rpcLogComplianceEvent({
+        _event_type: 'kyc.submitted',
+        _entity_type: 'user',
+        _details: { document_type: params.document_type },
+        _severity: 'info',
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['compliance_status'] });

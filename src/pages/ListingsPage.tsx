@@ -69,7 +69,7 @@ const ListingsPage = () => {
 
     try {
       if (editingId) {
-        await updateListing.mutateAsync({ id: editingId, ...values, pricing_type: values.pricing_type as any });
+        await updateListing.mutateAsync({ id: editingId, ...values, pricing_type: values.pricing_type as 'fixed_per_stream' | 'fixed_package' | 'hourly' | 'negotiable' });
         toast({ title: 'Listing updated' });
       } else {
         await createListing.mutateAsync(values);
@@ -77,8 +77,9 @@ const ListingsPage = () => {
       }
       setDialogOpen(false);
       setEditingId(null);
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
 
@@ -86,8 +87,9 @@ const ListingsPage = () => {
     try {
       await deleteListing.mutateAsync(id);
       toast({ title: 'Listing deleted' });
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
 
@@ -96,8 +98,9 @@ const ListingsPage = () => {
     try {
       await updateListing.mutateAsync({ id, status: newStatus });
       toast({ title: `Listing ${newStatus === 'active' ? 'activated' : 'paused'}` });
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
 

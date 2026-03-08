@@ -1353,6 +1353,14 @@ export type Database = {
         }
         Returns: string
       }
+      setup_new_user: {
+        Args: {
+          _display_name: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: Json
+      }
       validate_deal_transition: {
         Args: { _deal_id: string; _to_state: string; _user_id: string }
         Returns: boolean

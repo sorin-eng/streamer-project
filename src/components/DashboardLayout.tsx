@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { ComplianceBypassBanner } from '@/components/ComplianceBypassBanner';
 import { useUnreadDeals } from '@/hooks/useSupabaseData';
 import { NotificationBell } from '@/components/NotificationBell';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const navByRole: Record<string, { to: string; label: string; icon: any }[]> = {
   casino_manager: [
@@ -21,6 +22,7 @@ const navByRole: Record<string, { to: string; label: string; icon: any }[]> = {
     { to: '/messages', label: 'Messages', icon: MessageSquare },
     { to: '/reports', label: 'Reports', icon: BarChart3 },
     { to: '/profile', label: 'Profile', icon: Settings },
+    { to: '/settings', label: 'Settings', icon: Settings },
   ],
   streamer: [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -31,6 +33,7 @@ const navByRole: Record<string, { to: string; label: string; icon: any }[]> = {
     { to: '/messages', label: 'Messages', icon: MessageSquare },
     { to: '/reports', label: 'Earnings', icon: BarChart3 },
     { to: '/profile', label: 'Profile', icon: Settings },
+    { to: '/settings', label: 'Settings', icon: Settings },
   ],
   admin: [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -132,6 +135,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex-1" />
+          <ThemeToggle />
           <NotificationBell />
           <span className="inline-flex items-center rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
             {user.verified ? '✓ Verified' : '⏳ Pending Verification'}
