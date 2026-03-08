@@ -84,7 +84,7 @@ const MessagesPage = () => {
                     selectedDeal === d.id ? "bg-primary/5 border-l-2 border-l-primary" : "hover:bg-muted"
                   )}
                 >
-                  <p className="text-sm font-medium truncate">{(d.campaigns as any)?.title}</p>
+                  <p className="text-sm font-medium truncate">{(d.campaigns as any)?.title || 'Direct Deal'}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {user?.role === 'streamer' ? (d.organizations as any)?.name : (d.profiles as any)?.display_name}
                   </p>
