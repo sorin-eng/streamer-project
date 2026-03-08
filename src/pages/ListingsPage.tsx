@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/StatusBadge';
 import { EmptyState } from '@/components/EmptyState';
-import { Plus, Edit2, Trash2, DollarSign, Tag } from 'lucide-react';
+import { Plus, Edit2, Trash2, DollarSign, Tag, Pause, Play } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const PRICING_TYPES = [
