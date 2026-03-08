@@ -9,9 +9,9 @@ const stats = [
 ];
 
 const steps = [
-  { num: '01', icon: <Play className="h-6 w-6" />, title: 'Post or Browse', desc: 'Casinos post campaigns with budgets and requirements. Streamers browse and apply to opportunities that match their audience.' },
-  { num: '02', icon: <Handshake className="h-6 w-6" />, title: 'Match & Negotiate', desc: 'Accept applications, negotiate terms via real-time messaging, and finalize deal structures—CPA, RevShare, or Hybrid.' },
-  { num: '03', icon: <DollarSign className="h-6 w-6" />, title: 'Perform & Earn', desc: 'Sign contracts, track performance with transparent dashboards, and manage commissions automatically.' },
+  { num: '01', icon: <Play className="h-6 w-6" />, title: 'Create Profile & List', desc: 'Register as a streamer, connect your platforms, set your stats, and post listings with your pricing — fixed rate, package, or negotiable.' },
+  { num: '02', icon: <Handshake className="h-6 w-6" />, title: 'Get Discovered', desc: 'Casinos browse verified streamers filtered by platform, viewers, and geo. They find you and reach out directly.' },
+  { num: '03', icon: <DollarSign className="h-6 w-6" />, title: 'Get Paid in Crypto', desc: 'Negotiate terms, sign contracts, stream, and receive payments in USDT, BTC, or ETH — fast and borderless.' },
 ];
 
 const features = [
@@ -19,7 +19,7 @@ const features = [
   { icon: <FileText className="h-5 w-5" />, title: 'Smart Contracts', desc: 'Digital contracts with dual signatures, version tracking, and PDF export for legal records.' },
   { icon: <BarChart3 className="h-5 w-5" />, title: 'Performance Analytics', desc: 'Upload reports, track FTDs, deposits, and net revenue. Commission calculations happen automatically.' },
   { icon: <Users className="h-5 w-5" />, title: 'Streamer Discovery', desc: 'Browse verified streamers filtered by platform, audience geo, niche, and viewer count.' },
-  { icon: <Globe className="h-5 w-5" />, title: 'Geo-Smart Matching', desc: 'Campaigns respect jurisdiction restrictions. Only show opportunities to streamers in accepted territories.' },
+  { icon: <Globe className="h-5 w-5" />, title: 'Crypto-Native Payments', desc: 'Streamers set prices in USDT, BTC, or ETH. Borderless payments with no middlemen.' },
   { icon: <Zap className="h-5 w-5" />, title: 'Real-Time Messaging', desc: 'Negotiate deals and coordinate campaigns with built-in messaging per deal thread.' },
 ];
 
