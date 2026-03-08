@@ -155,7 +155,7 @@ const ReportsPage = () => {
                 <tbody className="divide-y divide-border">
                   {commissions.map(c => (
                     <tr key={c.id}>
-                      <td className="py-3 font-medium">{(c.deals as any)?.campaigns?.title || 'N/A'}</td>
+                      <td className="py-3 font-medium">{(c.deals as any)?.campaigns?.title || 'Direct Deal'}</td>
                       <td className="py-3">${Number(c.amount).toLocaleString()}</td>
                       <td className="py-3"><StatusBadge status={c.status} /></td>
                       <td className="py-3 text-muted-foreground">{c.period_start || '—'}</td>
