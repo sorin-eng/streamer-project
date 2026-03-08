@@ -217,7 +217,7 @@ const ReportsPage = () => {
                 <SelectTrigger><SelectValue placeholder="Choose a deal..." /></SelectTrigger>
                 <SelectContent>
                   {(deals || []).map(d => (
-                    <SelectItem key={d.id} value={d.id}>{(d.campaigns as any)?.title}</SelectItem>
+                    <SelectItem key={d.id} value={d.id}>{(d.campaigns as any)?.title || 'Direct Deal'}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

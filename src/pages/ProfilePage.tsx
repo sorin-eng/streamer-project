@@ -161,26 +161,25 @@ const StreamerProfileView = () => {
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-lg bg-muted p-3 text-center">
-                <Users className="h-4 w-4 mx-auto text-muted-foreground" />
-                <p className="mt-1 text-lg font-bold">{((profile?.follower_count || 0) / 1000).toFixed(0)}K</p>
-                <p className="text-xs text-muted-foreground">Followers</p>
-              </div>
-              <div className="rounded-lg bg-muted p-3 text-center">
-                <Eye className="h-4 w-4 mx-auto text-muted-foreground" />
-                <p className="mt-1 text-lg font-bold">{(profile?.avg_live_viewers || 0).toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">Avg Viewers</p>
-              </div>
-              <div className="rounded-lg bg-muted p-3 text-center">
-                <TrendingUp className="h-4 w-4 mx-auto text-muted-foreground" />
-                <p className="mt-1 text-lg font-bold">{profile?.engagement_rate || 0}%</p>
-                <p className="text-xs text-muted-foreground">Engagement</p>
-              </div>
-              <div className="rounded-lg bg-muted p-3 text-center">
-                <Globe className="h-4 w-4 mx-auto text-muted-foreground" />
-                <p className="mt-1 text-lg font-bold">{((profile?.monthly_impressions || 0) / 1000000).toFixed(1)}M</p>
-                <p className="text-xs text-muted-foreground">Impressions/mo</p>
+            <div className="border-t border-border pt-4 mt-4">
+              <h3 className="font-semibold mb-3 flex items-center gap-2"><TrendingUp className="h-4 w-4" />Performance Stats</h3>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-1">
+                  <Label className="text-xs">Followers</Label>
+                  <Input name="follower_count" type="number" defaultValue={profile?.follower_count || 0} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Avg Live Viewers</Label>
+                  <Input name="avg_live_viewers" type="number" defaultValue={profile?.avg_live_viewers || 0} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Engagement Rate (%)</Label>
+                  <Input name="engagement_rate" type="number" step="0.1" defaultValue={profile?.engagement_rate || 0} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Monthly Impressions</Label>
+                  <Input name="monthly_impressions" type="number" defaultValue={profile?.monthly_impressions || 0} />
+                </div>
               </div>
             </div>
 

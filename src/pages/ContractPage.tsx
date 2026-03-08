@@ -99,7 +99,7 @@ const ContractPage = () => {
           <div>
             <h1 className="text-2xl font-bold">Contract</h1>
             <p className="text-sm text-muted-foreground">
-              {deal ? `${(deal.campaigns as any)?.title} — ${(deal.organizations as any)?.name}` : 'Deal contract'}
+              {deal ? `${(deal.campaigns as any)?.title || 'Direct Deal'} — ${(deal.organizations as any)?.name}` : 'Deal contract'}
             </p>
           </div>
 

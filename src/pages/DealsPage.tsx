@@ -190,7 +190,7 @@ const DealsPage = () => {
                         <Handshake className="h-5 w-5" />
                       </div>
                       <div>
-                        <h3 className="font-semibold">{(deal.campaigns as any)?.title}</h3>
+                        <h3 className="font-semibold">{(deal.campaigns as any)?.title || `Direct Deal`}</h3>
                         <p className="text-sm text-muted-foreground">
                           {user?.role === 'streamer' ? (deal.organizations as any)?.name : (deal.profiles as any)?.display_name}
                         </p>

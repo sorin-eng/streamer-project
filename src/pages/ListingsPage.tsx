@@ -215,6 +215,9 @@ const ListingsPage = () => {
                 <Button size="sm" variant="outline" onClick={() => openEdit(listing.id)}>
                   <Edit2 className="mr-1 h-3 w-3" />Edit
                 </Button>
+                <Button size="sm" variant="outline" onClick={() => handleToggleStatus(listing.id, listing.status)}>
+                  {listing.status === 'active' ? <><Pause className="mr-1 h-3 w-3" />Pause</> : <><Play className="mr-1 h-3 w-3" />Activate</>}
+                </Button>
                 <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleDelete(listing.id)}>
                   <Trash2 className="mr-1 h-3 w-3" />Delete
                 </Button>

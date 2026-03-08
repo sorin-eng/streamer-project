@@ -95,7 +95,7 @@ const MessagesPage = () => {
 
           <div className="flex-1 flex flex-col">
             <div className="p-4 border-b border-border">
-              <h3 className="font-semibold">{deals.find(d => d.id === selectedDeal)?.campaigns?.title || 'Select a deal'}</h3>
+              <h3 className="font-semibold">{(deals.find(d => d.id === selectedDeal)?.campaigns as any)?.title || 'Direct Deal'}</h3>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {(messages || []).map(msg => {
