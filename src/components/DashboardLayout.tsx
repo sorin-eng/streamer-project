@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard, Megaphone, Handshake, MessageSquare, FileText,
-  BarChart3, Shield, Users, Settings, LogOut, Menu, X, Radio
+  BarChart3, Shield, Users, Settings, LogOut, Menu, X, Radio, Tag, Search
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
