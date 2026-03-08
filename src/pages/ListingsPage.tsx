@@ -91,6 +91,16 @@ const ListingsPage = () => {
     }
   };
 
+  const handleToggleStatus = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'paused' : 'active';
+    try {
+      await updateListing.mutateAsync({ id, status: newStatus });
+      toast({ title: `Listing ${newStatus === 'active' ? 'activated' : 'paused'}` });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
