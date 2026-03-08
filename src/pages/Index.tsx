@@ -51,11 +51,11 @@ const Index = () => {
             Casino × Streamer Partnership Platform
           </div>
           <h1 className="text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tight animate-slide-up leading-[1.1] text-white">
-            Where <span className="text-gradient-brand">Casinos</span> Meet{' '}
+            Where <span className="text-gradient-brand">Casinos</span> Find{' '}
             <span className="text-gradient-accent">Streamers</span>
           </h1>
           <p className="mt-6 text-lg md:text-xl text-white/55 max-w-2xl mx-auto animate-slide-up leading-relaxed">
-            The marketplace for brokering partnerships between licensed online casino operators and gambling content creators.
+            The crypto-native marketplace connecting licensed casino operators with gambling content creators. List your services. Get discovered. Get paid.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up">
             <Link to="/signup">
