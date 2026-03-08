@@ -89,7 +89,7 @@ const StreamersPage = () => {
                     {streamer.niche_type && <span className="text-xs text-muted-foreground">{streamer.niche_type}</span>}
                   </div>
                 </div>
-              </div>
+              </Link>
 
               {/* Stats */}
               <div className="grid grid-cols-3 gap-2 text-center">
