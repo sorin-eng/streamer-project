@@ -1,0 +1,1 @@
+ALTER TABLE public.deals ALTER COLUMN campaign_id DROP NOT NULL;

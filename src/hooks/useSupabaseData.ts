@@ -471,6 +471,52 @@ export function useBrowseStreamers() {
   });
 }
 
+export function useInitiateContact() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ streamerId, message }: { streamerId: string; message: string }) => {
+      if (!user || !user.organizationId) throw new Error('Organization required');
+      const { data: deal, error: dealErr } = await supabase
+        .from('deals')
+        .insert({
+          streamer_id: streamerId,
+          organization_id: user.organizationId,
+          deal_type: 'flat_fee' as const,
+          value: 0,
+          state: 'negotiation',
+        })
+        .select()
+        .single();
+      if (dealErr) throw dealErr;
+
+      await supabase.from('deal_messages').insert({
+        deal_id: deal.id,
+        sender_id: user.id,
+        content: message,
+      });
+
+      await supabase.from('deal_state_log').insert({
+        deal_id: deal.id,
+        to_state: 'negotiation',
+        changed_by: user.id,
+      });
+
+      await supabase.rpc('log_audit', {
+        _action: 'INITIATE_CONTACT',
+        _entity_type: 'deal',
+        _entity_id: deal.id,
+        _details: { streamer_id: streamerId },
+      });
+
+      return deal;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['deals'] });
+    },
+  });
+}
+
 // ---- Commissions ----
 export function useCommissions() {
   const { user } = useAuth();

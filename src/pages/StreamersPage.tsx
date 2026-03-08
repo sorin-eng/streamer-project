@@ -1,17 +1,26 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
-import { useBrowseStreamers } from '@/hooks/useSupabaseData';
+import { useBrowseStreamers, useInitiateContact } from '@/hooks/useSupabaseData';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/StatusBadge';
 import { EmptyState } from '@/components/EmptyState';
-import { Search, Users, Eye, Globe, DollarSign, MessageSquare, ExternalLink } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Search, Users, Globe, DollarSign, ExternalLink, MessageSquare } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 const StreamersPage = () => {
   const { data: streamers, isLoading } = useBrowseStreamers();
+  const initiateContact = useInitiateContact();
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [platformFilter, setPlatformFilter] = useState<string | null>(null);
+  const [contactDialog, setContactDialog] = useState<{ streamerId: string; name: string } | null>(null);
+  const [contactMessage, setContactMessage] = useState('');
 
   const filtered = (streamers || []).filter(s => {
     const name = (s.profiles as any)?.display_name?.toLowerCase() || '';
@@ -19,6 +28,22 @@ const StreamersPage = () => {
     const matchesPlatform = !platformFilter || (s.platforms || []).includes(platformFilter);
     return matchesSearch && matchesPlatform;
   });
+
+  const handleContact = async () => {
+    if (!contactDialog) return;
+    try {
+      await initiateContact.mutateAsync({
+        streamerId: contactDialog.streamerId,
+        message: contactMessage,
+      });
+      toast({ title: 'Deal initiated', description: 'A negotiation thread has been created.' });
+      setContactDialog(null);
+      setContactMessage('');
+      navigate('/deals');
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+  };
 
   const PLATFORM_FILTERS = ['Twitch', 'Kick', 'YouTube', 'TikTok'];
 
@@ -123,10 +148,52 @@ const StreamersPage = () => {
 
               {/* Bio */}
               {streamer.bio && <p className="text-xs text-muted-foreground line-clamp-2">{streamer.bio}</p>}
+
+              {/* Contact Button */}
+              <Button
+                className="w-full bg-gradient-brand hover:opacity-90"
+                size="sm"
+                onClick={() => setContactDialog({
+                  streamerId: streamer.user_id,
+                  name: (streamer.profiles as any)?.display_name || 'Streamer',
+                })}
+              >
+                <MessageSquare className="mr-2 h-4 w-4" />Contact Streamer
+              </Button>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Contact Dialog */}
+      <Dialog open={!!contactDialog} onOpenChange={(open) => { if (!open) { setContactDialog(null); setContactMessage(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Contact {contactDialog?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              This will create a new deal negotiation thread. Introduce yourself and describe the partnership you're looking for.
+            </p>
+            <div className="space-y-2">
+              <Label>Message</Label>
+              <Textarea
+                rows={4}
+                placeholder="Hi, I'm interested in partnering with you for..."
+                value={contactMessage}
+                onChange={e => setContactMessage(e.target.value)}
+              />
+            </div>
+            <Button
+              className="w-full bg-gradient-brand hover:opacity-90"
+              onClick={handleContact}
+              disabled={!contactMessage.trim() || initiateContact.isPending}
+            >
+              {initiateContact.isPending ? 'Sending...' : 'Start Negotiation'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

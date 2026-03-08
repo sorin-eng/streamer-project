@@ -630,7 +630,7 @@ export type Database = {
       deals: {
         Row: {
           application_id: string | null
-          campaign_id: string
+          campaign_id: string | null
           created_at: string
           deal_type: Database["public"]["Enums"]["deal_type"]
           end_date: string | null
@@ -644,7 +644,7 @@ export type Database = {
         }
         Insert: {
           application_id?: string | null
-          campaign_id: string
+          campaign_id?: string | null
           created_at?: string
           deal_type: Database["public"]["Enums"]["deal_type"]
           end_date?: string | null
@@ -658,7 +658,7 @@ export type Database = {
         }
         Update: {
           application_id?: string | null
-          campaign_id?: string
+          campaign_id?: string | null
           created_at?: string
           deal_type?: Database["public"]["Enums"]["deal_type"]
           end_date?: string | null

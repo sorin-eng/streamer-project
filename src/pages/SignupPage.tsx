@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Radio, Building2, Video, AlertCircle } from 'lucide-react';
+import { Radio, Building2, Video, AlertCircle, CheckCircle2, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type SignupRole = 'casino_manager' | 'streamer';
@@ -23,7 +23,9 @@ const SignupPage = () => {
   const [loading, setLoading] = useState(false);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const { signup } = useAuth();
-  const navigate = useNavigate();
+  // removed navigate - no longer auto-redirect
+
+  const [emailSent, setEmailSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +35,7 @@ const SignupPage = () => {
     setLoading(true);
     const result = await signup(email, password, role, displayName);
     setLoading(false);
-    if (result.ok) navigate('/dashboard');
+    if (result.ok) setEmailSent(true);
     else setError(result.error || 'Signup failed');
   };
 
@@ -57,6 +59,24 @@ const SignupPage = () => {
       </div>
 
       <div className="flex w-full lg:w-1/2 items-center justify-center p-8">
+        {emailSent ? (
+          <div className="w-full max-w-sm space-y-6 animate-slide-up text-center">
+            <div className="flex flex-col items-center gap-4 rounded-xl border border-primary/20 bg-primary/5 p-8">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                <Mail className="h-8 w-8 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold">Check your email</h2>
+              <p className="text-sm text-muted-foreground">
+                We sent a confirmation link to <strong>{email}</strong>. Click the link to verify your account and get started.
+              </p>
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Already verified?{' '}
+              <Link to="/login" className="font-medium text-primary hover:underline">Sign in</Link>
+            </p>
+          </div>
+        ) : (
         <div className="w-full max-w-sm space-y-6 animate-slide-up">
           <Link to="/" className="lg:hidden flex items-center gap-2 mb-8">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand">
@@ -126,6 +146,7 @@ const SignupPage = () => {
             <Link to="/login" className="font-medium text-primary hover:underline">Sign in</Link>
           </p>
         </div>
+        )}
       </div>
     </div>
   );
