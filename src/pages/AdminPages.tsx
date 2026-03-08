@@ -38,8 +38,9 @@ export const AdminVerificationsPage = () => {
 
       toast({ title: `Verification ${status}` });
       qc.invalidateQueries({ queryKey: ['all_profiles'] });
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
 
