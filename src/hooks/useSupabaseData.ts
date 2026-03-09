@@ -199,16 +199,45 @@ export function useDealMessages(dealId: string | null) {
   });
 }
 
+// Contact info patterns for anti-disintermediation
+const CONTACT_PATTERNS = [
+  /[\w.-]+@[\w.-]+\.\w{2,}/i,          // email
+  /\+?\d[\d\s\-()]{7,}\d/,              // phone numbers
+  /discord\.gg\/\S+/i,                   // discord invite
+  /t\.me\/\S+/i,                         // telegram
+  /(?:^|\s)@[\w]{3,}/,                   // @handles
+  /(?:whatsapp|telegram|signal|skype)\s*[:\-]?\s*\S+/i, // messaging apps
+];
+
+function detectContactInfo(text: string): boolean {
+  return CONTACT_PATTERNS.some(pattern => pattern.test(text));
+}
+
 export function useSendMessage() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
     mutationFn: async ({ dealId, content }: { dealId: string; content: string }) => {
       if (!user) throw new Error('Not authenticated');
+
+      // Check for contact info — still send but log compliance warning
+      const hasContactInfo = detectContactInfo(content);
+
       const { error } = await supabase
         .from('deal_messages')
         .insert({ deal_id: dealId, sender_id: user.id, content });
       if (error) throw error;
+
+      if (hasContactInfo) {
+        supabase.rpc('log_compliance_event', {
+          _event_type: 'off_platform_contact_attempt',
+          _entity_type: 'deal',
+          _entity_id: dealId,
+          _details: { flagged_content: content.slice(0, 200) },
+          _severity: 'warning',
+        }).catch(() => {});
+      }
+
       // Fire-and-forget notification
       sendNotification({
         event_type: 'new_message',
@@ -218,6 +247,8 @@ export function useSendMessage() {
         entity_type: 'deal',
         entity_id: dealId,
       });
+
+      return { hasContactInfo };
     },
     onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['deal_messages', vars.dealId] }),
   });
