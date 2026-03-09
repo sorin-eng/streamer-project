@@ -6,11 +6,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { EmptyState } from '@/components/EmptyState';
+import { LockedLink } from '@/components/LockedLink';
+import { RatingDisplay } from '@/components/StarRating';
 import { useToast } from '@/hooks/use-toast';
-import { useBrowseStreamers, useInitiateContact } from '@/hooks/useSupabaseData';
+import { useBrowseStreamers, useInitiateContact, useStreamerReviewStats } from '@/hooks/useSupabaseData';
 import { useState } from 'react';
 import {
-  Users, Globe, DollarSign, ExternalLink, MessageSquare, ArrowLeft,
+  Users, Globe, DollarSign, MessageSquare, ArrowLeft,
   Eye, TrendingUp, BarChart3, Zap
 } from 'lucide-react';
 import type { StreamerWithProfile } from '@/types/supabase-joins';
@@ -20,12 +22,14 @@ const StreamerDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: streamers, isLoading } = useBrowseStreamers();
+  const { data: reviewStats } = useStreamerReviewStats();
   const initiateContact = useInitiateContact();
   const { toast } = useToast();
   const [contactOpen, setContactOpen] = useState(false);
   const [contactMessage, setContactMessage] = useState('');
 
   const streamer = streamers?.find((s: StreamerWithProfile) => s.user_id === id);
+  const stats = reviewStats?.find(r => r.reviewee_id === id);
 
   const handleContact = async () => {
     if (!streamer) return;
@@ -34,7 +38,7 @@ const StreamerDetailPage = () => {
         streamerId: streamer.user_id,
         message: contactMessage,
       });
-      toast({ title: 'Deal initiated', description: 'A negotiation thread has been created.' });
+      toast({ title: 'Inquiry sent', description: 'The streamer will review your request.' });
       setContactOpen(false);
       setContactMessage('');
       navigate('/deals');
@@ -81,11 +85,12 @@ const StreamerDetailPage = () => {
                 {streamer.niche_type && (
                   <span className="inline-flex items-center rounded-full bg-accent px-3 py-0.5 text-xs font-medium text-accent-foreground">{streamer.niche_type}</span>
                 )}
+                {stats && <RatingDisplay rating={stats.avg_rating} count={stats.review_count} />}
               </div>
               {streamer.bio && <p className="text-sm text-muted-foreground mt-2">{streamer.bio}</p>}
             </div>
             <Button className="bg-gradient-brand hover:opacity-90 shrink-0" onClick={() => setContactOpen(true)}>
-              <MessageSquare className="mr-2 h-4 w-4" />Contact Streamer
+              <MessageSquare className="mr-2 h-4 w-4" />Send Inquiry
             </Button>
           </div>
         </div>
@@ -113,14 +118,15 @@ const StreamerDetailPage = () => {
             ))}
           </div>
           <div className="flex gap-4 flex-wrap">
-            {streamer.twitch_url && <a href={streamer.twitch_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3.5 w-3.5" />Twitch</a>}
-            {streamer.kick_url && <a href={streamer.kick_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3.5 w-3.5" />Kick</a>}
-            {streamer.youtube_url && <a href={streamer.youtube_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3.5 w-3.5" />YouTube</a>}
-            {streamer.twitter_url && <a href={streamer.twitter_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3.5 w-3.5" />Twitter</a>}
-            {streamer.tiktok_url && <a href={streamer.tiktok_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3.5 w-3.5" />TikTok</a>}
-            {streamer.instagram_url && <a href={streamer.instagram_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3.5 w-3.5" />Instagram</a>}
-            {streamer.discord_url && <a href={streamer.discord_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3.5 w-3.5" />Discord</a>}
+            {streamer.twitch_url && <LockedLink platform="Twitch" />}
+            {streamer.kick_url && <LockedLink platform="Kick" />}
+            {streamer.youtube_url && <LockedLink platform="YouTube" />}
+            {streamer.twitter_url && <LockedLink platform="Twitter" />}
+            {streamer.tiktok_url && <LockedLink platform="TikTok" />}
+            {streamer.instagram_url && <LockedLink platform="Instagram" />}
+            {streamer.discord_url && <LockedLink platform="Discord" />}
           </div>
+          <p className="text-xs text-muted-foreground italic">Social links are revealed after a deal reaches active status.</p>
         </div>
 
         {(streamer.audience_geo || []).length > 0 && (
@@ -177,7 +183,7 @@ const StreamerDetailPage = () => {
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              This will create a new deal negotiation thread. Introduce yourself and describe the partnership you're looking for.
+              This will send an inquiry to the streamer. They must accept before a deal negotiation thread opens.
             </p>
             <div className="space-y-2">
               <Label>Message</Label>
@@ -193,7 +199,7 @@ const StreamerDetailPage = () => {
               onClick={handleContact}
               disabled={!contactMessage.trim() || initiateContact.isPending}
             >
-              {initiateContact.isPending ? 'Sending...' : 'Start Negotiation'}
+              {initiateContact.isPending ? 'Sending...' : 'Send Inquiry'}
             </Button>
           </div>
         </DialogContent>

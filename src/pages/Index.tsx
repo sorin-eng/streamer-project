@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Shield, Handshake, BarChart3, Play, Radio, Users, FileText, DollarSign, Zap, Globe, CheckCircle2 } from 'lucide-react';
 
 const stats = [
-  { value: '$120M+', label: 'Streamer Marketing Spend (2025)' },
-  { value: '850+', label: 'Active Casino Streamers' },
-  { value: '28M+', label: 'Monthly Gambling Stream Views' },
+  { value: '$5M+', label: 'Streamer Marketing Spend' },
+  { value: '100+', label: 'Active Casino Streamers' },
+  { value: '7M+', label: 'Monthly Gambling Stream Views' },
 ];
 
 const steps = [
