@@ -196,7 +196,6 @@ export function useDealMessages(dealId: string | null) {
       if (error) throw error;
       return data as unknown as DealMessageWithSender[];
     },
-    refetchInterval: 5000,
   });
 }
 

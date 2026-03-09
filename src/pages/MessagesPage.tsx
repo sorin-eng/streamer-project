@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MessageSquare, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import type { DealWithRelations, DealMessageWithSender } from '@/types/supabase-joins';
 
 const MessagesPage = () => {
@@ -20,6 +21,7 @@ const MessagesPage = () => {
   const { data: messages } = useDealMessages(selectedDeal);
   const sendMessage = useSendMessage();
   const [newMessage, setNewMessage] = useState('');
+  const qc = useQueryClient();
 
   useEffect(() => {
     if (!selectedDeal && deals?.length) {
@@ -27,14 +29,22 @@ const MessagesPage = () => {
     }
   }, [deals, selectedDeal]);
 
+  // Realtime subscription - invalidate query on new messages
   useEffect(() => {
     if (!selectedDeal) return;
     const channel = supabase
       .channel(`messages-${selectedDeal}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'deal_messages', filter: `deal_id=eq.${selectedDeal}` }, () => {})
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'deal_messages',
+        filter: `deal_id=eq.${selectedDeal}`,
+      }, () => {
+        qc.invalidateQueries({ queryKey: ['deal_messages', selectedDeal] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [selectedDeal]);
+  }, [selectedDeal, qc]);
 
   const handleSend = async () => {
     if (!newMessage.trim() || !selectedDeal) return;

@@ -10,6 +10,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { Globe, Users, TrendingUp, Shield, Upload, FileCheck, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRef } from 'react';
+import { AvatarUpload } from '@/components/AvatarUpload';
 
 const ProfilePage = () => {
   const { user } = useAuth();
@@ -151,14 +152,16 @@ const StreamerProfileView = () => {
 
           <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-brand text-xl font-bold text-primary-foreground">
-                {user?.displayName[0] || '?'}
-              </div>
+              <AvatarUpload
+                currentUrl={user?.avatarUrl}
+                displayName={user?.displayName || '?'}
+                size="lg"
+              />
               <div>
                 <h2 className="text-xl font-bold">{user?.displayName}</h2>
                 <div className="flex items-center gap-2 mt-1">
                   {profile?.verified === 'approved' && <span className="inline-flex items-center gap-1 text-xs text-success"><Shield className="h-3 w-3" />Verified</span>}
-                  <span className="text-xs text-muted-foreground">{profile?.niche_type}</span>
+                  {profile?.niche_type && <span className="text-xs text-muted-foreground">{profile?.niche_type}</span>}
                 </div>
               </div>
             </div>
@@ -166,22 +169,10 @@ const StreamerProfileView = () => {
             <div className="border-t border-border pt-4 mt-4">
               <h3 className="font-semibold mb-3 flex items-center gap-2"><TrendingUp className="h-4 w-4" />Performance Stats</h3>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="space-y-1">
-                  <Label className="text-xs">Followers</Label>
-                  <Input name="follower_count" type="number" defaultValue={profile?.follower_count || 0} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Avg Live Viewers</Label>
-                  <Input name="avg_live_viewers" type="number" defaultValue={profile?.avg_live_viewers || 0} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Engagement Rate (%)</Label>
-                  <Input name="engagement_rate" type="number" step="0.1" defaultValue={profile?.engagement_rate || 0} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Monthly Impressions</Label>
-                  <Input name="monthly_impressions" type="number" defaultValue={profile?.monthly_impressions || 0} />
-                </div>
+                <div className="space-y-1"><Label className="text-xs">Followers</Label><Input name="follower_count" type="number" defaultValue={profile?.follower_count || 0} /></div>
+                <div className="space-y-1"><Label className="text-xs">Avg Live Viewers</Label><Input name="avg_live_viewers" type="number" defaultValue={profile?.avg_live_viewers || 0} /></div>
+                <div className="space-y-1"><Label className="text-xs">Engagement Rate (%)</Label><Input name="engagement_rate" type="number" step="0.1" defaultValue={profile?.engagement_rate || 0} /></div>
+                <div className="space-y-1"><Label className="text-xs">Monthly Impressions</Label><Input name="monthly_impressions" type="number" defaultValue={profile?.monthly_impressions || 0} /></div>
               </div>
             </div>
 
@@ -271,9 +262,11 @@ const CasinoProfileView = () => {
 
           <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-brand text-xl font-bold text-primary-foreground">
-                {program?.brand_name?.[0] || '?'}
-              </div>
+              <AvatarUpload
+                currentUrl={user?.avatarUrl}
+                displayName={program?.brand_name || user?.displayName || '?'}
+                size="lg"
+              />
               <div>
                 <h2 className="text-xl font-bold">{program?.brand_name}</h2>
                 <div className="flex items-center gap-2 mt-1">

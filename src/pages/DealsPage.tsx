@@ -1,18 +1,22 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { StatusBadge } from '@/components/StatusBadge';
-import { useDeals, useApplications, useUpdateApplicationStatus, useCreateDeal } from '@/hooks/useSupabaseData';
+import { useDeals, useApplications, useUpdateApplicationStatus } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Handshake, DollarSign, Calendar, ArrowRight, CheckCircle2, XCircle } from 'lucide-react';
+import { Handshake, DollarSign, Calendar, ArrowRight, CheckCircle2, XCircle, FileText } from 'lucide-react';
 import { EmptyState } from '@/components/EmptyState';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { SearchBar, PaginationControls } from '@/components/SearchPagination';
+import { ContractBuilder } from '@/components/ContractBuilder';
 import type { DealWithRelations, ApplicationWithProfile } from '@/types/supabase-joins';
 import { DealsSkeleton } from '@/components/PageSkeletons';
+
+const PAGE_SIZE = 20;
 
 const NEXT_STATES: Record<string, string> = {
   negotiation: 'contract_pending',
@@ -29,9 +33,24 @@ const DealsPage = () => {
   const qc = useQueryClient();
   const [transitioning, setTransitioning] = useState<string | null>(null);
   const [showApps, setShowApps] = useState(false);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [contractDeal, setContractDeal] = useState<DealWithRelations | null>(null);
 
   const isCasino = user?.role === 'casino_manager';
   const pendingApps = (applications || []).filter(a => a.status === 'pending');
+
+  // Filter and paginate
+  const filtered = (deals || []).filter((d: DealWithRelations) => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return (d.campaigns?.title || '').toLowerCase().includes(s) ||
+      (d.organizations?.name || '').toLowerCase().includes(s) ||
+      (d.profiles?.display_name || '').toLowerCase().includes(s) ||
+      d.state.toLowerCase().includes(s);
+  });
+  const totalCount = filtered.length;
+  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const handleAcceptApplication = async (app: ApplicationWithProfile) => {
     try {
@@ -58,7 +77,7 @@ const DealsPage = () => {
           .single();
 
         if (deal) {
-          await supabase.from('contracts').insert({
+          await (supabase.from('contracts') as any).insert({
             deal_id: deal.id,
             title: `Contract for ${app.campaign_id.slice(0, 8)}`,
             terms_json: {
@@ -82,7 +101,6 @@ const DealsPage = () => {
             _details: { application_id: app.id, campaign_id: app.campaign_id },
           });
 
-          // Notify
           await supabase.functions.invoke('notify', {
             body: {
               event_type: 'application_accepted',
@@ -153,7 +171,6 @@ const DealsPage = () => {
         _details: { from: currentState, to: nextState },
       });
 
-      // Notify
       await supabase.functions.invoke('notify', {
         body: {
           event_type: 'deal_state_change',
@@ -190,9 +207,11 @@ const DealsPage = () => {
           )}
         </div>
 
+        <SearchBar value={search} onChange={v => { setSearch(v); setPage(0); }} placeholder="Search deals..." />
+
         {isLoading ? (
           <DealsSkeleton />
-        ) : !deals?.length ? (
+        ) : !paginated.length ? (
           <EmptyState
             icon={<Handshake className="h-6 w-6" />}
             title="No deals yet"
@@ -201,7 +220,7 @@ const DealsPage = () => {
           />
         ) : (
           <div className="space-y-4">
-            {deals.map((deal: DealWithRelations) => {
+            {paginated.map((deal: DealWithRelations) => {
               const nextState = NEXT_STATES[deal.state];
               return (
                 <div key={deal.id} className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-elevated transition-all">
@@ -234,6 +253,11 @@ const DealsPage = () => {
                     <Link to={`/contracts?deal=${deal.id}`}>
                       <Button size="sm" variant="outline">View Contract</Button>
                     </Link>
+                    {isCasino && deal.state === 'negotiation' && (
+                      <Button size="sm" variant="outline" onClick={() => setContractDeal(deal)}>
+                        <FileText className="mr-1 h-3 w-3" />Create Contract
+                      </Button>
+                    )}
                     {nextState && (
                       <Button
                         size="sm"
@@ -252,6 +276,8 @@ const DealsPage = () => {
             })}
           </div>
         )}
+
+        <PaginationControls page={page} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
 
       {/* Pending Applications Dialog */}
@@ -289,6 +315,17 @@ const DealsPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Contract Builder */}
+      {contractDeal && (
+        <ContractBuilder
+          open={!!contractDeal}
+          onOpenChange={open => { if (!open) setContractDeal(null); }}
+          dealId={contractDeal.id}
+          dealType={contractDeal.deal_type}
+          dealValue={Number(contractDeal.value)}
+        />
+      )}
     </DashboardLayout>
   );
 };

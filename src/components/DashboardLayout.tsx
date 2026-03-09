@@ -114,9 +114,13 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
         <div className="border-t border-sidebar-border p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-brand text-sm font-semibold text-primary-foreground">
-              {user.displayName[0]?.toUpperCase() || '?'}
-            </div>
+            {user.avatarUrl ? (
+              <img src={user.avatarUrl} alt={user.displayName} className="h-9 w-9 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-brand text-sm font-semibold text-primary-foreground">
+                {user.displayName[0]?.toUpperCase() || '?'}
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-sidebar-accent-foreground truncate">{user.displayName}</p>
               <p className="text-xs text-sidebar-foreground capitalize">{user.role.replace('_', ' ')}</p>

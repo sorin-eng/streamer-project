@@ -8,9 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, Wallet, Bell, FileText, Trash2 } from 'lucide-react';
+import { Settings, Wallet, Bell, FileText, Trash2, Lock } from 'lucide-react';
 import { queryDisclaimerAcceptances, deleteDisclaimerAcceptance } from '@/lib/supabaseHelpers';
 import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { WebhookSettings } from '@/components/WebhookSettings';
 
 const CRYPTOS = ['USDT', 'BTC', 'ETH', 'USDC', 'SOL'];
 
@@ -33,12 +35,34 @@ const SettingsPage = () => {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [disclaimers, setDisclaimers] = useState<DisclaimerAcceptance[]>([]);
 
+  // Password change
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+
   useEffect(() => {
     if (profile) {
       setWalletAddress(profile.wallet_address || '');
       setPreferredCrypto(profile.preferred_crypto || 'USDT');
     }
   }, [profile]);
+
+  // Load notification preferences from profiles
+  useEffect(() => {
+    if (user?.id) {
+      (supabase
+        .from('profiles')
+        .select('notification_preferences')
+        .eq('user_id', user.id)
+        .maybeSingle() as any)
+        .then(({ data }: any) => {
+          if (data?.notification_preferences) {
+            const prefs = data.notification_preferences as Record<string, boolean>;
+            setEmailNotifications(prefs.email !== false);
+          }
+        });
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     if (user?.id) {
@@ -59,6 +83,41 @@ const SettingsPage = () => {
       const message = err instanceof Error ? err.message : 'Unknown error';
       toast({ title: 'Error', description: message, variant: 'destructive' });
     }
+  };
+
+  const handleToggleEmailNotifications = async (checked: boolean) => {
+    setEmailNotifications(checked);
+    try {
+      await supabase
+        .from('profiles')
+        .update({ notification_preferences: { email: checked } } as any)
+        .eq('user_id', user!.id);
+    } catch {
+      // silent
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword.length < 8) {
+      toast({ title: 'Password too short', description: 'Minimum 8 characters', variant: 'destructive' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: 'Passwords do not match', variant: 'destructive' });
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setNewPassword('');
+      setConfirmPassword('');
+      toast({ title: 'Password updated successfully' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    }
+    setChangingPassword(false);
   };
 
   const handleRevokeDisclaimer = async (id: string) => {
@@ -84,40 +143,54 @@ const SettingsPage = () => {
           <p className="text-sm text-muted-foreground">Manage your account preferences</p>
         </div>
 
-        {/* Payment Settings */}
+        {/* Password Change */}
         <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-4">
           <h2 className="font-semibold flex items-center gap-2">
-            <Wallet className="h-4 w-4" /> Payment Settings
+            <Lock className="h-4 w-4" /> Change Password
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Wallet Address</Label>
-              <Input
-                value={walletAddress}
-                onChange={(e) => setWalletAddress(e.target.value)}
-                placeholder="0x... or bc1..."
-              />
+              <Label>New Password</Label>
+              <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min 8 characters" />
             </div>
             <div className="space-y-2">
-              <Label>Preferred Crypto</Label>
-              <Select value={preferredCrypto} onValueChange={setPreferredCrypto}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CRYPTOS.map(c => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Confirm Password</Label>
+              <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter password" />
             </div>
           </div>
-          <Button
-            className="bg-gradient-brand hover:opacity-90"
-            onClick={handleSavePayment}
-            disabled={updateProfile.isPending}
-          >
-            Save Payment Settings
+          <Button onClick={handleChangePassword} disabled={changingPassword || !newPassword} variant="outline">
+            {changingPassword ? 'Updating...' : 'Update Password'}
           </Button>
         </div>
+
+        {/* Payment Settings */}
+        {user?.role === 'streamer' && (
+          <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-4">
+            <h2 className="font-semibold flex items-center gap-2">
+              <Wallet className="h-4 w-4" /> Payment Settings
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Wallet Address</Label>
+                <Input value={walletAddress} onChange={e => setWalletAddress(e.target.value)} placeholder="0x... or bc1..." />
+              </div>
+              <div className="space-y-2">
+                <Label>Preferred Crypto</Label>
+                <Select value={preferredCrypto} onValueChange={setPreferredCrypto}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CRYPTOS.map(c => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button className="bg-gradient-brand hover:opacity-90" onClick={handleSavePayment} disabled={updateProfile.isPending}>
+              Save Payment Settings
+            </Button>
+          </div>
+        )}
 
         {/* Notification Preferences */}
         <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-4">
@@ -129,10 +202,7 @@ const SettingsPage = () => {
               <p className="text-sm font-medium">Email Notifications</p>
               <p className="text-xs text-muted-foreground">Receive deal updates and messages via email</p>
             </div>
-            <Switch
-              checked={emailNotifications}
-              onCheckedChange={setEmailNotifications}
-            />
+            <Switch checked={emailNotifications} onCheckedChange={handleToggleEmailNotifications} />
           </div>
           <div className="flex items-center justify-between">
             <div>
@@ -142,6 +212,9 @@ const SettingsPage = () => {
             <Switch checked={true} disabled />
           </div>
         </div>
+
+        {/* Webhook Settings - Casino managers only */}
+        {user?.role === 'casino_manager' && <WebhookSettings />}
 
         {/* Disclaimer Acceptances */}
         <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-4">
@@ -160,12 +233,7 @@ const SettingsPage = () => {
                       v{d.disclaimer_version} · Accepted {new Date(d.created_at).toLocaleDateString()}
                     </p>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => handleRevokeDisclaimer(d.id)}
-                  >
+                  <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleRevokeDisclaimer(d.id)}>
                     <Trash2 className="mr-1 h-3 w-3" /> Revoke
                   </Button>
                 </div>
