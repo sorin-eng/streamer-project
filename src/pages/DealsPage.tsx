@@ -365,6 +365,16 @@ const DealsPage = () => {
                         )}
                       </Button>
                     )}
+                    {deal.state === 'active' && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-warning hover:text-warning"
+                        onClick={() => setDisputeDeal(deal)}
+                      >
+                        <AlertTriangle className="mr-1 h-3 w-3" />Dispute
+                      </Button>
+                    )}
                     {!isTerminal && (
                       <Button
                         size="sm"
