@@ -35,6 +35,8 @@ const StreamersPage = () => {
     const matchesPlatform = !platformFilter || (s.platforms || []).includes(platformFilter);
     return matchesSearch && matchesPlatform;
   });
+  const totalCount = filtered.length;
+  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const handleContact = async () => {
     if (!contactDialog) return;
