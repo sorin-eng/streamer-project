@@ -941,6 +941,8 @@ export type Database = {
           display_name: string
           id: string
           kyc_status: string
+          notification_preferences: Json | null
+          suspended: boolean | null
           updated_at: string
           user_id: string
         }
@@ -950,6 +952,8 @@ export type Database = {
           display_name?: string
           id?: string
           kyc_status?: string
+          notification_preferences?: Json | null
+          suspended?: boolean | null
           updated_at?: string
           user_id: string
         }
@@ -959,6 +963,8 @@ export type Database = {
           display_name?: string
           id?: string
           kyc_status?: string
+          notification_preferences?: Json | null
+          suspended?: boolean | null
           updated_at?: string
           user_id?: string
         }
@@ -1322,6 +1328,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_change_role: {
+        Args: {
+          _new_role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: undefined
+      }
+      admin_toggle_suspend: {
+        Args: { _suspended: boolean; _user_id: string }
+        Returns: undefined
+      }
       check_user_compliance: { Args: { _user_id: string }; Returns: Json }
       get_user_role: {
         Args: { _user_id: string }
