@@ -85,7 +85,7 @@ const StreamersPage = () => {
         )}
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((streamer: StreamerWithProfile) => (
+          {paginated.map((streamer: StreamerWithProfile) => (
             <div key={streamer.id} className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-elevated transition-all space-y-4">
               <Link to={`/streamers/${streamer.user_id}`} className="flex items-center gap-3 group">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-brand text-lg font-bold text-primary-foreground shrink-0">
