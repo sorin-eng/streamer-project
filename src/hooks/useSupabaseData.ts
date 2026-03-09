@@ -229,13 +229,15 @@ export function useSendMessage() {
       if (error) throw error;
 
       if (hasContactInfo) {
-        supabase.rpc('log_compliance_event', {
-          _event_type: 'off_platform_contact_attempt',
-          _entity_type: 'deal',
-          _entity_id: dealId,
-          _details: JSON.stringify({ flagged_content: content.slice(0, 200) }),
-          _severity: 'warning',
-        }).then(() => {}).catch(() => {});
+        try {
+          await supabase.rpc('log_compliance_event', {
+            _event_type: 'off_platform_contact_attempt',
+            _entity_type: 'deal',
+            _entity_id: dealId,
+            _details: JSON.stringify({ flagged_content: content.slice(0, 200) }),
+            _severity: 'warning',
+          });
+        } catch { /* non-blocking */ }
       }
 
       // Fire-and-forget notification
