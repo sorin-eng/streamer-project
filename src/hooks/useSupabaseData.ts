@@ -568,7 +568,7 @@ export function useInitiateContact() {
 
       await supabase.from('deal_state_log').insert({
         deal_id: deal.id,
-        to_state: 'negotiation',
+        to_state: 'inquiry',
         changed_by: user.id,
       });
 
