@@ -22,6 +22,7 @@ const MessagesPage = () => {
   const { data: messages } = useDealMessages(selectedDeal);
   const sendMessage = useSendMessage();
   const [newMessage, setNewMessage] = useState('');
+  const { toast } = useToast();
   const qc = useQueryClient();
 
   useEffect(() => {
