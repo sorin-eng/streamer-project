@@ -6,12 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Shield, CheckCircle2, XCircle, UserCog, Ban } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { updateProfileKycStatus, rpcLogComplianceEvent } from '@/lib/supabaseHelpers';
+import { updateProfileKycStatus, rpcLogComplianceEvent, rpcAdminChangeRole, rpcAdminToggleSuspend } from '@/lib/supabaseHelpers';
 import { TableSkeleton } from '@/components/PageSkeletons';
 import { SearchBar, PaginationControls } from '@/components/SearchPagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { supabase } from '@/integrations/supabase/client';
 import type { VerificationDocWithProfile, ProfileWithRole, AuditLogWithProfile } from '@/types/supabase-joins';
 
 const PAGE_SIZE = 20;
