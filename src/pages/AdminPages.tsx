@@ -135,7 +135,7 @@ export const AdminUsersPage = () => {
   const handleChangeRole = async () => {
     if (!roleDialog || !newRole) return;
     try {
-      const { error } = await (supabase.rpc as (fn: string, params: Record<string, unknown>) => Promise<{ error: Error | null }>)('admin_change_role', {
+      const { error } = await (supabase.rpc as any)('admin_change_role', {
         _user_id: roleDialog.user_id,
         _new_role: newRole,
       });
