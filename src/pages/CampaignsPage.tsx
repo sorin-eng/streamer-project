@@ -10,14 +10,18 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Megaphone, Plus, Search, Globe, Clock, DollarSign } from 'lucide-react';
+import { Megaphone, Plus, Globe, Clock, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { SearchBar, PaginationControls } from '@/components/SearchPagination';
 import type { CampaignWithOrg } from '@/types/supabase-joins';
 import { CampaignsSkeleton } from '@/components/PageSkeletons';
+
+const PAGE_SIZE = 20;
 
 const CampaignsPage = () => {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
   const [applyOpen, setApplyOpen] = useState<string | null>(null);
   const [applyMsg, setApplyMsg] = useState('');
@@ -29,6 +33,10 @@ const CampaignsPage = () => {
   const submitApplication = useSubmitApplication();
 
   const isCasino = user?.role === 'casino_manager';
+
+  // Client-side pagination on fetched results
+  const totalCount = campaigns?.length || 0;
+  const paginated = (campaigns || []).slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -109,18 +117,15 @@ const CampaignsPage = () => {
           )}
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search campaigns..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
+        <SearchBar value={search} onChange={v => { setSearch(v); setPage(0); }} placeholder="Search campaigns..." />
 
         {isLoading ? (
           <CampaignsSkeleton />
-        ) : !campaigns?.length ? (
+        ) : !paginated.length ? (
           <EmptyState icon={<Megaphone className="h-6 w-6" />} title="No campaigns found" description={isCasino ? "Create your first campaign to attract streamers." : "Try adjusting your search or check back later."} />
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
-            {campaigns.map((c: CampaignWithOrg) => (
+            {paginated.map((c: CampaignWithOrg) => (
               <div key={c.id} className="group rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-elevated hover:border-primary/20 transition-all">
                 <div className="flex items-start justify-between">
                   <div>
@@ -147,6 +152,8 @@ const CampaignsPage = () => {
             ))}
           </div>
         )}
+
+        <PaginationControls page={page} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
 
       <Dialog open={!!applyOpen} onOpenChange={open => { if (!open) setApplyOpen(null); }}>

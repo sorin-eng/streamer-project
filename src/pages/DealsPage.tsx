@@ -5,12 +5,14 @@ import { useDeals, useApplications, useUpdateApplicationStatus } from '@/hooks/u
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Handshake, DollarSign, Calendar, ArrowRight, CheckCircle2, XCircle, FileText } from 'lucide-react';
+import { Handshake, DollarSign, Calendar, ArrowRight, CheckCircle2, XCircle, FileText, Ban } from 'lucide-react';
 import { EmptyState } from '@/components/EmptyState';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { SearchBar, PaginationControls } from '@/components/SearchPagination';
 import { ContractBuilder } from '@/components/ContractBuilder';
 import type { DealWithRelations, ApplicationWithProfile } from '@/types/supabase-joins';
@@ -36,6 +38,9 @@ const DealsPage = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [contractDeal, setContractDeal] = useState<DealWithRelations | null>(null);
+  const [cancelDeal, setCancelDeal] = useState<DealWithRelations | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
 
   const isCasino = user?.role === 'casino_manager';
   const pendingApps = (applications || []).filter(a => a.status === 'pending');
@@ -77,7 +82,7 @@ const DealsPage = () => {
           .single();
 
         if (deal) {
-          await (supabase.from('contracts') as any).insert({
+          await supabase.from('contracts').insert({
             deal_id: deal.id,
             title: `Contract for ${app.campaign_id.slice(0, 8)}`,
             terms_json: {
@@ -85,7 +90,7 @@ const DealsPage = () => {
               value: campaign.data.budget || 0,
               auto_generated: true,
             },
-            status: 'draft',
+            status: 'draft' as const,
           });
 
           await supabase.from('deal_state_log').insert({
@@ -161,7 +166,7 @@ const DealsPage = () => {
       });
 
       if (nextState === 'contract_pending') {
-        await supabase.from('contracts').update({ status: 'pending_signature' }).eq('deal_id', dealId);
+        await supabase.from('contracts').update({ status: 'pending_signature' as const }).eq('deal_id', dealId);
       }
 
       await supabase.rpc('log_audit', {
@@ -189,6 +194,49 @@ const DealsPage = () => {
       toast({ title: 'Error', description: message, variant: 'destructive' });
     }
     setTransitioning(null);
+  };
+
+  const handleCancelDeal = async () => {
+    if (!cancelDeal) return;
+    setCancelling(true);
+    try {
+      const { data: valid } = await supabase.rpc('validate_deal_transition', {
+        _deal_id: cancelDeal.id,
+        _to_state: 'cancelled',
+        _user_id: user!.id,
+      });
+
+      if (!valid) {
+        toast({ title: 'Cannot cancel', description: 'This deal cannot be cancelled in its current state.', variant: 'destructive' });
+        setCancelling(false);
+        return;
+      }
+
+      await supabase.from('deals').update({ state: 'cancelled' }).eq('id', cancelDeal.id);
+      await supabase.from('deal_state_log').insert({
+        deal_id: cancelDeal.id,
+        from_state: cancelDeal.state,
+        to_state: 'cancelled',
+        changed_by: user!.id,
+        reason: cancelReason || null,
+      });
+
+      await supabase.rpc('log_audit', {
+        _action: 'CANCEL_DEAL',
+        _entity_type: 'deal',
+        _entity_id: cancelDeal.id,
+        _details: { from: cancelDeal.state, reason: cancelReason },
+      });
+
+      toast({ title: 'Deal cancelled' });
+      qc.invalidateQueries({ queryKey: ['deals'] });
+      setCancelDeal(null);
+      setCancelReason('');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    }
+    setCancelling(false);
   };
 
   return (
@@ -222,6 +270,7 @@ const DealsPage = () => {
           <div className="space-y-4">
             {paginated.map((deal: DealWithRelations) => {
               const nextState = NEXT_STATES[deal.state];
+              const isTerminal = deal.state === 'completed' || deal.state === 'cancelled';
               return (
                 <div key={deal.id} className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-elevated transition-all">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -270,6 +319,16 @@ const DealsPage = () => {
                         )}
                       </Button>
                     )}
+                    {!isTerminal && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setCancelDeal(deal)}
+                      >
+                        <Ban className="mr-1 h-3 w-3" />Cancel
+                      </Button>
+                    )}
                   </div>
                 </div>
               );
@@ -312,6 +371,35 @@ const DealsPage = () => {
               </div>
             ))}
             {pendingApps.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No pending applications</p>}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Deal Dialog */}
+      <Dialog open={!!cancelDeal} onOpenChange={open => { if (!open) { setCancelDeal(null); setCancelReason(''); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Cancel Deal</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to cancel this deal? This action will be logged and the other party will be notified.
+            </p>
+            <div className="space-y-2">
+              <Label>Reason (optional)</Label>
+              <Textarea
+                value={cancelReason}
+                onChange={e => setCancelReason(e.target.value)}
+                placeholder="Why are you cancelling this deal?"
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => { setCancelDeal(null); setCancelReason(''); }}>
+                Keep Deal
+              </Button>
+              <Button variant="destructive" onClick={handleCancelDeal} disabled={cancelling}>
+                {cancelling ? 'Cancelling...' : 'Cancel Deal'}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
