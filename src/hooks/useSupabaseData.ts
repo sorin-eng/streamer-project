@@ -233,9 +233,9 @@ export function useSendMessage() {
           _event_type: 'off_platform_contact_attempt',
           _entity_type: 'deal',
           _entity_id: dealId,
-          _details: { flagged_content: content.slice(0, 200) },
+          _details: JSON.stringify({ flagged_content: content.slice(0, 200) }),
           _severity: 'warning',
-        }).catch(() => {});
+        }).then(() => {}).catch(() => {});
       }
 
       // Fire-and-forget notification
