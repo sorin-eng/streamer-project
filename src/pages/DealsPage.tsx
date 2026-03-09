@@ -5,7 +5,7 @@ import { useDeals, useApplications, useUpdateApplicationStatus } from '@/hooks/u
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Handshake, DollarSign, Calendar, ArrowRight, CheckCircle2, XCircle, FileText, Ban } from 'lucide-react';
+import { Handshake, DollarSign, Calendar, ArrowRight, CheckCircle2, XCircle, FileText, Ban, AlertTriangle } from 'lucide-react';
 import { EmptyState } from '@/components/EmptyState';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
