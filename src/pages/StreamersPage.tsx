@@ -14,6 +14,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import type { StreamerWithProfile } from '@/types/supabase-joins';
 import type { Tables } from '@/integrations/supabase/types';
 import { StreamersSkeleton } from '@/components/PageSkeletons';
+import { PaginationControls } from '@/components/SearchPagination';
+
+const PAGE_SIZE = 12;
 
 const StreamersPage = () => {
   const { data: streamers, isLoading } = useBrowseStreamers();
