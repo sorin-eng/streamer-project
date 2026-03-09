@@ -71,7 +71,7 @@ const StreamersPage = () => {
             <Input placeholder="Search by name or bio..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1 flex-nowrap">
-            <Button variant={platformFilter === null ? 'default' : 'outline'} size="sm" className="shrink-0" onClick={() => setPlatformFilter(null)}>All</Button>
+            <Button variant={platformFilter === null ? 'default' : 'outline'} size="sm" className="shrink-0" onClick={() => { setPlatformFilter(null); setPage(0); }}>All</Button>
             {PLATFORM_FILTERS.map(p => (
               <Button key={p} variant={platformFilter === p ? 'default' : 'outline'} size="sm" className="shrink-0" onClick={() => setPlatformFilter(p)}>{p}</Button>
             ))}
