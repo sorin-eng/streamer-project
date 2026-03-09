@@ -151,7 +151,7 @@ export const AdminUsersPage = () => {
 
   const handleToggleSuspend = async (userId: string, currentlySuspended: boolean) => {
     try {
-      const { error } = await (supabase.rpc as (fn: string, params: Record<string, unknown>) => Promise<{ error: Error | null }>)('admin_toggle_suspend', {
+      const { error } = await (supabase.rpc as any)('admin_toggle_suspend', {
         _user_id: userId,
         _suspended: !currentlySuspended,
       });
