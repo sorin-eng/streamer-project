@@ -181,7 +181,7 @@ export const AdminUsersPage = () => {
               </thead>
               <tbody className="divide-y divide-border">
                 {paginated.map((p: ProfileWithRole) => {
-                  const isSuspended = (p as any).suspended === true;
+                  const isSuspended = !!(p as ProfileWithRole & { suspended?: boolean }).suspended;
                   return (
                     <tr key={p.id} className={`hover:bg-muted/50 transition-colors ${isSuspended ? 'opacity-50' : ''}`}>
                       <td className="px-4 py-3">

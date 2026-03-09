@@ -73,7 +73,7 @@ const StreamersPage = () => {
           <div className="flex gap-2 overflow-x-auto pb-1 flex-nowrap">
             <Button variant={platformFilter === null ? 'default' : 'outline'} size="sm" className="shrink-0" onClick={() => { setPlatformFilter(null); setPage(0); }}>All</Button>
             {PLATFORM_FILTERS.map(p => (
-              <Button key={p} variant={platformFilter === p ? 'default' : 'outline'} size="sm" className="shrink-0" onClick={() => setPlatformFilter(p)}>{p}</Button>
+              <Button key={p} variant={platformFilter === p ? 'default' : 'outline'} size="sm" className="shrink-0" onClick={() => { setPlatformFilter(p); setPage(0); }}>{p}</Button>
             ))}
           </div>
         </div>

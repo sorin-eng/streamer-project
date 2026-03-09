@@ -88,10 +88,7 @@ const SettingsPage = () => {
   const handleToggleEmailNotifications = async (checked: boolean) => {
     setEmailNotifications(checked);
     try {
-      await supabase
-        .from('profiles')
-        .update({ notification_preferences: { email: checked } } as Record<string, unknown>)
-        .eq('user_id', user!.id);
+      await updateNotificationPreferences(user!.id, { email: checked });
     } catch {
       // silent
     }

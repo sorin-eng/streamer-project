@@ -460,6 +460,35 @@ const DealsPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Dispute Deal Dialog */}
+      <Dialog open={!!disputeDeal} onOpenChange={open => { if (!open) { setDisputeDeal(null); setDisputeReason(''); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Dispute Deal</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Raise a dispute for this deal. The other party and platform admins will be notified.
+            </p>
+            <div className="space-y-2">
+              <Label>Reason</Label>
+              <Textarea
+                value={disputeReason}
+                onChange={e => setDisputeReason(e.target.value)}
+                placeholder="Describe the issue with this deal..."
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => { setDisputeDeal(null); setDisputeReason(''); }}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDisputeDeal} disabled={disputing || !disputeReason.trim()}>
+                {disputing ? 'Submitting...' : 'Submit Dispute'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Contract Builder */}
       {contractDeal && (
         <ContractBuilder

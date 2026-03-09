@@ -80,3 +80,30 @@ export async function updateProfileKycStatus(userId: string, kycStatus: string) 
     .update({ kyc_status: kycStatus } as any)
     .eq('user_id', userId);
 }
+
+// ---- Admin RPCs ----
+
+export async function rpcAdminChangeRole(userId: string, newRole: string) {
+  const { error } = await (supabase.rpc as any)('admin_change_role', {
+    _user_id: userId,
+    _new_role: newRole,
+  });
+  if (error) throw error;
+}
+
+export async function rpcAdminToggleSuspend(userId: string, suspended: boolean) {
+  const { error } = await (supabase.rpc as any)('admin_toggle_suspend', {
+    _user_id: userId,
+    _suspended: suspended,
+  });
+  if (error) throw error;
+}
+
+// ---- Profile helpers ----
+
+export async function updateNotificationPreferences(userId: string, prefs: Record<string, boolean>) {
+  return supabase
+    .from('profiles')
+    .update({ notification_preferences: prefs } as any)
+    .eq('user_id', userId);
+}
