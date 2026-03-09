@@ -718,3 +718,104 @@ export function useContracts(dealId?: string) {
     },
   });
 }
+
+// ---- Reviews ----
+export function useStreamerReviewStats() {
+  return useQuery({
+    queryKey: ['review_stats'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('reviewee_id, rating');
+      if (error) throw error;
+      // Aggregate by reviewee
+      const map = new Map<string, { total: number; count: number }>();
+      (data || []).forEach(r => {
+        const existing = map.get(r.reviewee_id) || { total: 0, count: 0 };
+        existing.total += r.rating;
+        existing.count += 1;
+        map.set(r.reviewee_id, existing);
+      });
+      return Array.from(map.entries()).map(([reviewee_id, { total, count }]) => ({
+        reviewee_id,
+        avg_rating: total / count,
+        review_count: count,
+      }));
+    },
+  });
+}
+
+export function useCreateReview() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ dealId, revieweeId, rating, comment }: {
+      dealId: string;
+      revieweeId: string;
+      rating: number;
+      comment: string;
+    }) => {
+      if (!user) throw new Error('Not authenticated');
+      const { error } = await supabase
+        .from('reviews')
+        .insert({
+          deal_id: dealId,
+          reviewer_id: user.id,
+          reviewee_id: revieweeId,
+          rating,
+          comment: comment || null,
+        });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['review_stats'] });
+      qc.invalidateQueries({ queryKey: ['deals'] });
+    },
+  });
+}
+
+// ---- Accept / Decline Inquiry ----
+export function useRespondToInquiry() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ dealId, accept }: { dealId: string; accept: boolean }) => {
+      if (!user) throw new Error('Not authenticated');
+      const newState = accept ? 'negotiation' : 'cancelled';
+
+      const { data: valid } = await supabase.rpc('validate_deal_transition', {
+        _deal_id: dealId,
+        _to_state: newState,
+        _user_id: user.id,
+      });
+
+      if (!valid) throw new Error('Transition not allowed');
+
+      await supabase.from('deals').update({ state: newState }).eq('id', dealId);
+      await supabase.from('deal_state_log').insert({
+        deal_id: dealId,
+        from_state: 'inquiry',
+        to_state: newState,
+        changed_by: user.id,
+        reason: accept ? 'Streamer accepted inquiry' : 'Streamer declined inquiry',
+      });
+
+      await supabase.rpc('log_audit', {
+        _action: accept ? 'ACCEPT_INQUIRY' : 'DECLINE_INQUIRY',
+        _entity_type: 'deal',
+        _entity_id: dealId,
+      });
+
+      await supabase.functions.invoke('notify', {
+        body: {
+          event_type: accept ? 'inquiry_accepted' : 'inquiry_declined',
+          deal_id: dealId,
+          title: accept ? 'Inquiry accepted' : 'Inquiry declined',
+          entity_type: 'deal',
+          entity_id: dealId,
+        },
+      }).catch(() => {});
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['deals'] }),
+  });
+}
