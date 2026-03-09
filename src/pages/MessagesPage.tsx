@@ -50,7 +50,14 @@ const MessagesPage = () => {
 
   const handleSend = async () => {
     if (!newMessage.trim() || !selectedDeal) return;
-    await sendMessage.mutateAsync({ dealId: selectedDeal, content: newMessage });
+    const result = await sendMessage.mutateAsync({ dealId: selectedDeal, content: newMessage });
+    if (result?.hasContactInfo) {
+      toast({
+        title: 'Warning',
+        description: 'Sharing contact information off-platform may violate our terms of service.',
+        variant: 'destructive',
+      });
+    }
     setNewMessage('');
   };
 
