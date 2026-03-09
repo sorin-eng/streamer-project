@@ -52,8 +52,8 @@ export const ContractBuilder: React.FC<ContractBuilderProps> = ({
       const { error } = await supabase.from('contracts').insert({
         deal_id: dealId,
         title,
-        terms_json: termsJson,
-        status: 'draft',
+        terms_json: termsJson as unknown as Record<string, unknown>,
+        status: 'draft' as const,
       });
 
       if (error) throw error;
