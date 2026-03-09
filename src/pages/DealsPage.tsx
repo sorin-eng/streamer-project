@@ -554,6 +554,61 @@ const DealsPage = () => {
           dealValue={Number(contractDeal.value)}
         />
       )}
+
+      {/* Review Dialog */}
+      <Dialog open={!!reviewDeal} onOpenChange={open => { if (!open) { setReviewDeal(null); setReviewRating(0); setReviewComment(''); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Leave a Review</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Rate your experience with {user?.role === 'streamer' ? reviewDeal?.organizations?.name : reviewDeal?.profiles?.display_name}.
+            </p>
+            <div className="flex justify-center">
+              <StarRating rating={reviewRating} onChange={setReviewRating} />
+            </div>
+            <div className="space-y-2">
+              <Label>Comment (optional)</Label>
+              <Textarea
+                value={reviewComment}
+                onChange={e => setReviewComment(e.target.value)}
+                placeholder="How was your experience?"
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => { setReviewDeal(null); setReviewRating(0); setReviewComment(''); }}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-gradient-brand hover:opacity-90"
+                disabled={reviewRating === 0 || createReview.isPending}
+                onClick={async () => {
+                  if (!reviewDeal) return;
+                  const revieweeId = user?.role === 'streamer' 
+                    ? reviewDeal.organization_id 
+                    : reviewDeal.streamer_id;
+                  try {
+                    await createReview.mutateAsync({
+                      dealId: reviewDeal.id,
+                      revieweeId,
+                      rating: reviewRating,
+                      comment: reviewComment,
+                    });
+                    toast({ title: 'Review submitted' });
+                    setReviewDeal(null);
+                    setReviewRating(0);
+                    setReviewComment('');
+                  } catch (err: unknown) {
+                    toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
+                  }
+                }}
+              >
+                {createReview.isPending ? 'Submitting...' : 'Submit Review'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
