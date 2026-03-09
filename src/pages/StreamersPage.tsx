@@ -165,6 +165,8 @@ const StreamersPage = () => {
             </div>
           ))}
         </div>
+
+        <PaginationControls page={page} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
 
       <Dialog open={!!contactDialog} onOpenChange={(open) => { if (!open) { setContactDialog(null); setContactMessage(''); } }}>
