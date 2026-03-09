@@ -134,11 +134,7 @@ export const AdminUsersPage = () => {
   const handleChangeRole = async () => {
     if (!roleDialog || !newRole) return;
     try {
-      const { error } = await (supabase.rpc as any)('admin_change_role', {
-        _user_id: roleDialog.user_id,
-        _new_role: newRole,
-      });
-      if (error) throw error;
+      await rpcAdminChangeRole(roleDialog.user_id, newRole);
       toast({ title: 'Role updated' });
       qc.invalidateQueries({ queryKey: ['all_profiles'] });
       setRoleDialog(null);
@@ -150,11 +146,7 @@ export const AdminUsersPage = () => {
 
   const handleToggleSuspend = async (userId: string, currentlySuspended: boolean) => {
     try {
-      const { error } = await (supabase.rpc as any)('admin_toggle_suspend', {
-        _user_id: userId,
-        _suspended: !currentlySuspended,
-      });
-      if (error) throw error;
+      await rpcAdminToggleSuspend(userId, !currentlySuspended);
       toast({ title: currentlySuspended ? 'User unsuspended' : 'User suspended' });
       qc.invalidateQueries({ queryKey: ['all_profiles'] });
     } catch (err: unknown) {
