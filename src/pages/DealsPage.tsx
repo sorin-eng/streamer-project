@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { StatusBadge } from '@/components/StatusBadge';
-import { useDeals, useApplications, useUpdateApplicationStatus } from '@/hooks/useSupabaseData';
+import { useDeals, useApplications, useUpdateApplicationStatus, useRespondToInquiry, useCreateReview } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Handshake, DollarSign, Calendar, ArrowRight, CheckCircle2, XCircle, FileText, Ban, AlertTriangle } from 'lucide-react';
+import { Handshake, DollarSign, Calendar, ArrowRight, CheckCircle2, XCircle, FileText, Ban, AlertTriangle, Star, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { EmptyState } from '@/components/EmptyState';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { SearchBar, PaginationControls } from '@/components/SearchPagination';
 import { ContractBuilder } from '@/components/ContractBuilder';
+import { StarRating } from '@/components/StarRating';
 import type { DealWithRelations, ApplicationWithProfile } from '@/types/supabase-joins';
 import { DealsSkeleton } from '@/components/PageSkeletons';
 
@@ -31,6 +32,8 @@ const DealsPage = () => {
   const { data: deals, isLoading } = useDeals();
   const { data: applications } = useApplications();
   const updateAppStatus = useUpdateApplicationStatus();
+  const respondToInquiry = useRespondToInquiry();
+  const createReview = useCreateReview();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [transitioning, setTransitioning] = useState<string | null>(null);
@@ -44,6 +47,9 @@ const DealsPage = () => {
   const [disputeDeal, setDisputeDeal] = useState<DealWithRelations | null>(null);
   const [disputeReason, setDisputeReason] = useState('');
   const [disputing, setDisputing] = useState(false);
+  const [reviewDeal, setReviewDeal] = useState<DealWithRelations | null>(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
 
   const isCasino = user?.role === 'casino_manager';
   const pendingApps = (applications || []).filter(a => a.status === 'pending');
@@ -342,18 +348,58 @@ const DealsPage = () => {
                     {deal.start_date && <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{deal.start_date} → {deal.end_date}</span>}
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <Link to={`/messages?deal=${deal.id}`}>
-                      <Button size="sm" variant="outline">Messages</Button>
-                    </Link>
-                    <Link to={`/contracts?deal=${deal.id}`}>
-                      <Button size="sm" variant="outline">View Contract</Button>
-                    </Link>
+                    {/* Inquiry accept/decline for streamers */}
+                    {deal.state === 'inquiry' && user?.role === 'streamer' && (
+                      <>
+                        <Button
+                          size="sm"
+                          className="bg-gradient-brand hover:opacity-90"
+                          onClick={async () => {
+                            try {
+                              await respondToInquiry.mutateAsync({ dealId: deal.id, accept: true });
+                              toast({ title: 'Inquiry accepted — negotiation started' });
+                            } catch (err: unknown) {
+                              toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
+                            }
+                          }}
+                          disabled={respondToInquiry.isPending}
+                        >
+                          <ThumbsUp className="mr-1 h-3 w-3" />Accept Inquiry
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          onClick={async () => {
+                            try {
+                              await respondToInquiry.mutateAsync({ dealId: deal.id, accept: false });
+                              toast({ title: 'Inquiry declined' });
+                            } catch (err: unknown) {
+                              toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
+                            }
+                          }}
+                          disabled={respondToInquiry.isPending}
+                        >
+                          <ThumbsDown className="mr-1 h-3 w-3" />Decline
+                        </Button>
+                      </>
+                    )}
+                    {deal.state !== 'inquiry' && (
+                      <Link to={`/messages?deal=${deal.id}`}>
+                        <Button size="sm" variant="outline">Messages</Button>
+                      </Link>
+                    )}
+                    {deal.state !== 'inquiry' && (
+                      <Link to={`/contracts?deal=${deal.id}`}>
+                        <Button size="sm" variant="outline">View Contract</Button>
+                      </Link>
+                    )}
                     {isCasino && deal.state === 'negotiation' && (
                       <Button size="sm" variant="outline" onClick={() => setContractDeal(deal)}>
                         <FileText className="mr-1 h-3 w-3" />Create Contract
                       </Button>
                     )}
-                    {nextState && (
+                    {nextState && deal.state !== 'inquiry' && (
                       <Button
                         size="sm"
                         className="bg-gradient-brand hover:opacity-90"
@@ -363,6 +409,15 @@ const DealsPage = () => {
                         {transitioning === deal.id ? 'Processing...' : (
                           <>Advance to {nextState.replace('_', ' ')} <ArrowRight className="ml-1 h-3.5 w-3.5" /></>
                         )}
+                      </Button>
+                    )}
+                    {deal.state === 'completed' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setReviewDeal(deal)}
+                      >
+                        <Star className="mr-1 h-3 w-3" />Leave Review
                       </Button>
                     )}
                     {deal.state === 'active' && (
@@ -375,7 +430,7 @@ const DealsPage = () => {
                         <AlertTriangle className="mr-1 h-3 w-3" />Dispute
                       </Button>
                     )}
-                    {!isTerminal && (
+                    {!isTerminal && deal.state !== 'inquiry' && (
                       <Button
                         size="sm"
                         variant="ghost"
@@ -499,6 +554,61 @@ const DealsPage = () => {
           dealValue={Number(contractDeal.value)}
         />
       )}
+
+      {/* Review Dialog */}
+      <Dialog open={!!reviewDeal} onOpenChange={open => { if (!open) { setReviewDeal(null); setReviewRating(0); setReviewComment(''); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Leave a Review</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Rate your experience with {user?.role === 'streamer' ? reviewDeal?.organizations?.name : reviewDeal?.profiles?.display_name}.
+            </p>
+            <div className="flex justify-center">
+              <StarRating rating={reviewRating} onChange={setReviewRating} />
+            </div>
+            <div className="space-y-2">
+              <Label>Comment (optional)</Label>
+              <Textarea
+                value={reviewComment}
+                onChange={e => setReviewComment(e.target.value)}
+                placeholder="How was your experience?"
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => { setReviewDeal(null); setReviewRating(0); setReviewComment(''); }}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-gradient-brand hover:opacity-90"
+                disabled={reviewRating === 0 || createReview.isPending}
+                onClick={async () => {
+                  if (!reviewDeal) return;
+                  const revieweeId = user?.role === 'streamer' 
+                    ? reviewDeal.organization_id 
+                    : reviewDeal.streamer_id;
+                  try {
+                    await createReview.mutateAsync({
+                      dealId: reviewDeal.id,
+                      revieweeId,
+                      rating: reviewRating,
+                      comment: reviewComment,
+                    });
+                    toast({ title: 'Review submitted' });
+                    setReviewDeal(null);
+                    setReviewRating(0);
+                    setReviewComment('');
+                  } catch (err: unknown) {
+                    toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
+                  }
+                }}
+              >
+                {createReview.isPending ? 'Submitting...' : 'Submit Review'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

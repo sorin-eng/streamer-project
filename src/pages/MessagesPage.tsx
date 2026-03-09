@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/EmptyState';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MessageSquare, Send } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -21,6 +22,7 @@ const MessagesPage = () => {
   const { data: messages } = useDealMessages(selectedDeal);
   const sendMessage = useSendMessage();
   const [newMessage, setNewMessage] = useState('');
+  const { toast } = useToast();
   const qc = useQueryClient();
 
   useEffect(() => {
@@ -48,7 +50,14 @@ const MessagesPage = () => {
 
   const handleSend = async () => {
     if (!newMessage.trim() || !selectedDeal) return;
-    await sendMessage.mutateAsync({ dealId: selectedDeal, content: newMessage });
+    const result = await sendMessage.mutateAsync({ dealId: selectedDeal, content: newMessage });
+    if (result?.hasContactInfo) {
+      toast({
+        title: 'Warning',
+        description: 'Sharing contact information off-platform may violate our terms of service.',
+        variant: 'destructive',
+      });
+    }
     setNewMessage('');
   };
 
