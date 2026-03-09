@@ -41,6 +41,9 @@ const DealsPage = () => {
   const [cancelDeal, setCancelDeal] = useState<DealWithRelations | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
+  const [disputeDeal, setDisputeDeal] = useState<DealWithRelations | null>(null);
+  const [disputeReason, setDisputeReason] = useState('');
+  const [disputing, setDisputing] = useState(false);
 
   const isCasino = user?.role === 'casino_manager';
   const pendingApps = (applications || []).filter(a => a.status === 'pending');
