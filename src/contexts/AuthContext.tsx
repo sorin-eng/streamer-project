@@ -12,6 +12,8 @@ export interface AppUser {
   avatarUrl?: string;
   verified: boolean;
   organizationId?: string;
+  suspended: boolean;
+  emailConfirmed: boolean;
 }
 
 interface AuthContextType {
@@ -25,6 +27,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 async function buildAppUser(supaUser: SupabaseUser): Promise<AppUser> {
+  const emailConfirmed = !!supaUser.email_confirmed_at;
+
   // Fetch role
   const { data: roleRow } = await supabase
     .from('user_roles')
@@ -32,10 +36,10 @@ async function buildAppUser(supaUser: SupabaseUser): Promise<AppUser> {
     .eq('user_id', supaUser.id)
     .maybeSingle();
 
-  // Fetch profile
+  // Fetch profile (including suspended)
   const { data: profile } = await supabase
     .from('profiles')
-    .select('display_name, avatar_url')
+    .select('display_name, avatar_url, suspended')
     .eq('user_id', supaUser.id)
     .maybeSingle();
 
@@ -75,6 +79,8 @@ async function buildAppUser(supaUser: SupabaseUser): Promise<AppUser> {
     avatarUrl: profile?.avatar_url || undefined,
     verified,
     organizationId: orgMember?.organization_id || undefined,
+    suspended: (profile as Record<string, unknown>)?.suspended === true,
+    emailConfirmed,
   };
 }
 
@@ -85,7 +91,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        // Use setTimeout to avoid potential deadlock with Supabase client
         setTimeout(async () => {
           const appUser = await buildAppUser(session.user);
           setUser(appUser);
@@ -109,8 +114,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { ok: false, error: error.message };
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      // Handle unconfirmed email
+      if (error.message.toLowerCase().includes('email not confirmed')) {
+        return { ok: false, error: 'Please check your email and verify your account before signing in.' };
+      }
+      return { ok: false, error: error.message };
+    }
+    // Check email confirmation
+    if (data.user && !data.user.email_confirmed_at) {
+      await supabase.auth.signOut();
+      return { ok: false, error: 'Please check your email and verify your account before signing in.' };
+    }
     return { ok: true };
   }, []);
 
@@ -125,7 +141,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const userId = data.user.id;
 
-    // Use security definer function for all setup
     const { error: setupError } = await (supabase.rpc as any)('setup_new_user', {
       _user_id: userId,
       _role: role,

@@ -25,14 +25,30 @@ const ContractPage = () => {
 
   const handleSign = async (contractId: string) => {
     try {
+      // Get current contract state
+      const contract = contracts?.find(c => c.id === contractId);
+      if (!contract) throw new Error('Contract not found');
+
       const signField = user?.role === 'streamer' ? 'signer_streamer_id' : 'signer_casino_id';
+      const otherField = user?.role === 'streamer' ? 'signer_casino_id' : 'signer_streamer_id';
+
+      // Check if other party already signed
+      const otherSigned = !!contract[otherField];
+      const newStatus = otherSigned ? 'signed' : 'pending_signature';
+
+      const updatePayload: Record<string, unknown> = {
+        [signField]: user?.id,
+        status: newStatus,
+      };
+
+      // Only set signed_at when both parties have signed
+      if (otherSigned) {
+        updatePayload.signed_at = new Date().toISOString();
+      }
+
       const { error } = await supabase
         .from('contracts')
-        .update({
-          [signField]: user?.id,
-          signed_at: new Date().toISOString(),
-          status: 'signed',
-        })
+        .update(updatePayload)
         .eq('id', contractId);
       if (error) throw error;
 
@@ -50,12 +66,18 @@ const ContractPage = () => {
         _severity: 'info',
       });
 
-      toast({ title: 'Contract signed' });
+      toast({ title: otherSigned ? 'Contract fully signed!' : 'Contract signed — awaiting other party' });
       qc.invalidateQueries({ queryKey: ['contracts'] });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       toast({ title: 'Error signing', description: message, variant: 'destructive' });
     }
+  };
+
+  const alreadySigned = (contract: typeof contracts extends (infer T)[] | undefined ? T : never) => {
+    if (!contract || !user) return false;
+    if (user.role === 'streamer') return !!contract.signer_streamer_id;
+    return !!contract.signer_casino_id;
   };
 
   if (!dealId) {
@@ -169,9 +191,14 @@ const ContractPage = () => {
                 </div>
 
                 <div className="flex gap-3">
-                  {contract.status === 'pending_signature' && (
+                  {contract.status === 'pending_signature' && !alreadySigned(contract) && (
                     <Button className="bg-gradient-brand hover:opacity-90" onClick={() => handleSign(contract.id)}>
                       <Pen className="mr-2 h-4 w-4" />Sign Contract
+                    </Button>
+                  )}
+                  {contract.status === 'pending_signature' && alreadySigned(contract) && (
+                    <Button variant="outline" disabled>
+                      <Pen className="mr-2 h-4 w-4" />You've Signed — Awaiting Other Party
                     </Button>
                   )}
                   {contract.pdf_url && (

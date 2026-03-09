@@ -50,12 +50,12 @@ const SettingsPage = () => {
   // Load notification preferences from profiles
   useEffect(() => {
     if (user?.id) {
-      (supabase
+      supabase
         .from('profiles')
         .select('notification_preferences')
         .eq('user_id', user.id)
-        .maybeSingle() as any)
-        .then(({ data }: any) => {
+        .maybeSingle()
+        .then(({ data }: { data: Record<string, unknown> | null }) => {
           if (data?.notification_preferences) {
             const prefs = data.notification_preferences as Record<string, boolean>;
             setEmailNotifications(prefs.email !== false);
@@ -90,7 +90,7 @@ const SettingsPage = () => {
     try {
       await supabase
         .from('profiles')
-        .update({ notification_preferences: { email: checked } } as any)
+        .update({ notification_preferences: { email: checked } } as Record<string, unknown>)
         .eq('user_id', user!.id);
     } catch {
       // silent

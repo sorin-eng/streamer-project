@@ -135,7 +135,7 @@ export const AdminUsersPage = () => {
   const handleChangeRole = async () => {
     if (!roleDialog || !newRole) return;
     try {
-      const { error } = await (supabase.rpc as any)('admin_change_role', {
+      const { error } = await (supabase.rpc as (fn: string, params: Record<string, unknown>) => Promise<{ error: Error | null }>)('admin_change_role', {
         _user_id: roleDialog.user_id,
         _new_role: newRole,
       });
@@ -151,7 +151,7 @@ export const AdminUsersPage = () => {
 
   const handleToggleSuspend = async (userId: string, currentlySuspended: boolean) => {
     try {
-      const { error } = await (supabase.rpc as any)('admin_toggle_suspend', {
+      const { error } = await (supabase.rpc as (fn: string, params: Record<string, unknown>) => Promise<{ error: Error | null }>)('admin_toggle_suspend', {
         _user_id: userId,
         _suspended: !currentlySuspended,
       });
@@ -190,7 +190,7 @@ export const AdminUsersPage = () => {
               </thead>
               <tbody className="divide-y divide-border">
                 {paginated.map((p: ProfileWithRole) => {
-                  const isSuspended = (p as any).suspended === true;
+                  const isSuspended = (p as Record<string, unknown>).suspended === true;
                   return (
                     <tr key={p.id} className={`hover:bg-muted/50 transition-colors ${isSuspended ? 'opacity-50' : ''}`}>
                       <td className="px-4 py-3">
