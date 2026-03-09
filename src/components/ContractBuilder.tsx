@@ -49,11 +49,11 @@ export const ContractBuilder: React.FC<ContractBuilderProps> = ({
         (termsJson.commission_structure as Record<string, unknown>).revshare_pct = Number(revsharePct) || 0;
       }
 
-      const { error } = await supabase.from('contracts').insert({
+      const { error } = await (supabase.from('contracts') as any).insert({
         deal_id: dealId,
         title,
-        terms_json: termsJson as unknown as Record<string, unknown>,
-        status: 'draft' as const,
+        terms_json: termsJson,
+        status: 'draft',
       });
 
       if (error) throw error;
