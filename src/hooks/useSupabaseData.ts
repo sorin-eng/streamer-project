@@ -554,7 +554,7 @@ export function useInitiateContact() {
           organization_id: user.organizationId,
           deal_type: 'flat_fee' as const,
           value: 0,
-          state: 'negotiation',
+          state: 'inquiry',
         })
         .select()
         .single();
