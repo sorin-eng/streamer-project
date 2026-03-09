@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { StatusBadge } from '@/components/StatusBadge';
-import { useDeals, useApplications, useUpdateApplicationStatus } from '@/hooks/useSupabaseData';
+import { useDeals, useApplications, useUpdateApplicationStatus, useRespondToInquiry, useCreateReview } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Handshake, DollarSign, Calendar, ArrowRight, CheckCircle2, XCircle, FileText, Ban, AlertTriangle } from 'lucide-react';
+import { Handshake, DollarSign, Calendar, ArrowRight, CheckCircle2, XCircle, FileText, Ban, AlertTriangle, Star, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { EmptyState } from '@/components/EmptyState';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { SearchBar, PaginationControls } from '@/components/SearchPagination';
 import { ContractBuilder } from '@/components/ContractBuilder';
+import { StarRating } from '@/components/StarRating';
 import type { DealWithRelations, ApplicationWithProfile } from '@/types/supabase-joins';
 import { DealsSkeleton } from '@/components/PageSkeletons';
 
