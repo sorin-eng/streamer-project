@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Settings, Wallet, Bell, FileText, Trash2, Lock } from 'lucide-react';
-import { queryDisclaimerAcceptances, deleteDisclaimerAcceptance } from '@/lib/supabaseHelpers';
+import { queryDisclaimerAcceptances, deleteDisclaimerAcceptance, updateNotificationPreferences } from '@/lib/supabaseHelpers';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { WebhookSettings } from '@/components/WebhookSettings';
