@@ -32,6 +32,8 @@ const DealsPage = () => {
   const { data: deals, isLoading } = useDeals();
   const { data: applications } = useApplications();
   const updateAppStatus = useUpdateApplicationStatus();
+  const respondToInquiry = useRespondToInquiry();
+  const createReview = useCreateReview();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [transitioning, setTransitioning] = useState<string | null>(null);
@@ -45,6 +47,9 @@ const DealsPage = () => {
   const [disputeDeal, setDisputeDeal] = useState<DealWithRelations | null>(null);
   const [disputeReason, setDisputeReason] = useState('');
   const [disputing, setDisputing] = useState(false);
+  const [reviewDeal, setReviewDeal] = useState<DealWithRelations | null>(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
 
   const isCasino = user?.role === 'casino_manager';
   const pendingApps = (applications || []).filter(a => a.status === 'pending');
