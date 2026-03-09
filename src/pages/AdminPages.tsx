@@ -6,12 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Shield, CheckCircle2, XCircle, UserCog, Ban } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { updateProfileKycStatus, rpcLogComplianceEvent } from '@/lib/supabaseHelpers';
+import { updateProfileKycStatus, rpcLogComplianceEvent, rpcAdminChangeRole, rpcAdminToggleSuspend } from '@/lib/supabaseHelpers';
 import { TableSkeleton } from '@/components/PageSkeletons';
 import { SearchBar, PaginationControls } from '@/components/SearchPagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { supabase } from '@/integrations/supabase/client';
 import type { VerificationDocWithProfile, ProfileWithRole, AuditLogWithProfile } from '@/types/supabase-joins';
 
 const PAGE_SIZE = 20;
@@ -135,11 +134,7 @@ export const AdminUsersPage = () => {
   const handleChangeRole = async () => {
     if (!roleDialog || !newRole) return;
     try {
-      const { error } = await (supabase.rpc as any)('admin_change_role', {
-        _user_id: roleDialog.user_id,
-        _new_role: newRole,
-      });
-      if (error) throw error;
+      await rpcAdminChangeRole(roleDialog.user_id, newRole);
       toast({ title: 'Role updated' });
       qc.invalidateQueries({ queryKey: ['all_profiles'] });
       setRoleDialog(null);
@@ -151,11 +146,7 @@ export const AdminUsersPage = () => {
 
   const handleToggleSuspend = async (userId: string, currentlySuspended: boolean) => {
     try {
-      const { error } = await (supabase.rpc as any)('admin_toggle_suspend', {
-        _user_id: userId,
-        _suspended: !currentlySuspended,
-      });
-      if (error) throw error;
+      await rpcAdminToggleSuspend(userId, !currentlySuspended);
       toast({ title: currentlySuspended ? 'User unsuspended' : 'User suspended' });
       qc.invalidateQueries({ queryKey: ['all_profiles'] });
     } catch (err: unknown) {
@@ -190,7 +181,7 @@ export const AdminUsersPage = () => {
               </thead>
               <tbody className="divide-y divide-border">
                 {paginated.map((p: ProfileWithRole) => {
-                  const isSuspended = (p as any).suspended === true;
+                  const isSuspended = !!(p as ProfileWithRole & { suspended?: boolean }).suspended;
                   return (
                     <tr key={p.id} className={`hover:bg-muted/50 transition-colors ${isSuspended ? 'opacity-50' : ''}`}>
                       <td className="px-4 py-3">

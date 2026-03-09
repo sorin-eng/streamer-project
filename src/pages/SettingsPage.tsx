@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Settings, Wallet, Bell, FileText, Trash2, Lock } from 'lucide-react';
-import { queryDisclaimerAcceptances, deleteDisclaimerAcceptance } from '@/lib/supabaseHelpers';
+import { queryDisclaimerAcceptances, deleteDisclaimerAcceptance, updateNotificationPreferences } from '@/lib/supabaseHelpers';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { WebhookSettings } from '@/components/WebhookSettings';
@@ -88,10 +88,7 @@ const SettingsPage = () => {
   const handleToggleEmailNotifications = async (checked: boolean) => {
     setEmailNotifications(checked);
     try {
-      await supabase
-        .from('profiles')
-        .update({ notification_preferences: { email: checked } } as Record<string, unknown>)
-        .eq('user_id', user!.id);
+      await updateNotificationPreferences(user!.id, { email: checked });
     } catch {
       // silent
     }

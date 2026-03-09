@@ -14,6 +14,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import type { StreamerWithProfile } from '@/types/supabase-joins';
 import type { Tables } from '@/integrations/supabase/types';
 import { StreamersSkeleton } from '@/components/PageSkeletons';
+import { PaginationControls } from '@/components/SearchPagination';
+
+const PAGE_SIZE = 12;
 
 const StreamersPage = () => {
   const { data: streamers, isLoading } = useBrowseStreamers();
@@ -24,6 +27,7 @@ const StreamersPage = () => {
   const [platformFilter, setPlatformFilter] = useState<string | null>(null);
   const [contactDialog, setContactDialog] = useState<{ streamerId: string; name: string } | null>(null);
   const [contactMessage, setContactMessage] = useState('');
+  const [page, setPage] = useState(0);
 
   const filtered = (streamers || []).filter((s: StreamerWithProfile) => {
     const name = s.profiles?.display_name?.toLowerCase() || '';
@@ -31,6 +35,8 @@ const StreamersPage = () => {
     const matchesPlatform = !platformFilter || (s.platforms || []).includes(platformFilter);
     return matchesSearch && matchesPlatform;
   });
+  const totalCount = filtered.length;
+  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const handleContact = async () => {
     if (!contactDialog) return;
@@ -65,9 +71,9 @@ const StreamersPage = () => {
             <Input placeholder="Search by name or bio..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1 flex-nowrap">
-            <Button variant={platformFilter === null ? 'default' : 'outline'} size="sm" className="shrink-0" onClick={() => setPlatformFilter(null)}>All</Button>
+            <Button variant={platformFilter === null ? 'default' : 'outline'} size="sm" className="shrink-0" onClick={() => { setPlatformFilter(null); setPage(0); }}>All</Button>
             {PLATFORM_FILTERS.map(p => (
-              <Button key={p} variant={platformFilter === p ? 'default' : 'outline'} size="sm" className="shrink-0" onClick={() => setPlatformFilter(p)}>{p}</Button>
+              <Button key={p} variant={platformFilter === p ? 'default' : 'outline'} size="sm" className="shrink-0" onClick={() => { setPlatformFilter(p); setPage(0); }}>{p}</Button>
             ))}
           </div>
         </div>
@@ -79,7 +85,7 @@ const StreamersPage = () => {
         )}
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((streamer: StreamerWithProfile) => (
+          {paginated.map((streamer: StreamerWithProfile) => (
             <div key={streamer.id} className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-elevated transition-all space-y-4">
               <Link to={`/streamers/${streamer.user_id}`} className="flex items-center gap-3 group">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-brand text-lg font-bold text-primary-foreground shrink-0">
@@ -159,6 +165,8 @@ const StreamersPage = () => {
             </div>
           ))}
         </div>
+
+        <PaginationControls page={page} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
 
       <Dialog open={!!contactDialog} onOpenChange={(open) => { if (!open) { setContactDialog(null); setContactMessage(''); } }}>
