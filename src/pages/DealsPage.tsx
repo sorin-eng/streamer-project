@@ -348,18 +348,58 @@ const DealsPage = () => {
                     {deal.start_date && <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{deal.start_date} → {deal.end_date}</span>}
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <Link to={`/messages?deal=${deal.id}`}>
-                      <Button size="sm" variant="outline">Messages</Button>
-                    </Link>
-                    <Link to={`/contracts?deal=${deal.id}`}>
-                      <Button size="sm" variant="outline">View Contract</Button>
-                    </Link>
+                    {/* Inquiry accept/decline for streamers */}
+                    {deal.state === 'inquiry' && user?.role === 'streamer' && (
+                      <>
+                        <Button
+                          size="sm"
+                          className="bg-gradient-brand hover:opacity-90"
+                          onClick={async () => {
+                            try {
+                              await respondToInquiry.mutateAsync({ dealId: deal.id, accept: true });
+                              toast({ title: 'Inquiry accepted — negotiation started' });
+                            } catch (err: unknown) {
+                              toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
+                            }
+                          }}
+                          disabled={respondToInquiry.isPending}
+                        >
+                          <ThumbsUp className="mr-1 h-3 w-3" />Accept Inquiry
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          onClick={async () => {
+                            try {
+                              await respondToInquiry.mutateAsync({ dealId: deal.id, accept: false });
+                              toast({ title: 'Inquiry declined' });
+                            } catch (err: unknown) {
+                              toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
+                            }
+                          }}
+                          disabled={respondToInquiry.isPending}
+                        >
+                          <ThumbsDown className="mr-1 h-3 w-3" />Decline
+                        </Button>
+                      </>
+                    )}
+                    {deal.state !== 'inquiry' && (
+                      <Link to={`/messages?deal=${deal.id}`}>
+                        <Button size="sm" variant="outline">Messages</Button>
+                      </Link>
+                    )}
+                    {deal.state !== 'inquiry' && (
+                      <Link to={`/contracts?deal=${deal.id}`}>
+                        <Button size="sm" variant="outline">View Contract</Button>
+                      </Link>
+                    )}
                     {isCasino && deal.state === 'negotiation' && (
                       <Button size="sm" variant="outline" onClick={() => setContractDeal(deal)}>
                         <FileText className="mr-1 h-3 w-3" />Create Contract
                       </Button>
                     )}
-                    {nextState && (
+                    {nextState && deal.state !== 'inquiry' && (
                       <Button
                         size="sm"
                         className="bg-gradient-brand hover:opacity-90"
@@ -369,6 +409,15 @@ const DealsPage = () => {
                         {transitioning === deal.id ? 'Processing...' : (
                           <>Advance to {nextState.replace('_', ' ')} <ArrowRight className="ml-1 h-3.5 w-3.5" /></>
                         )}
+                      </Button>
+                    )}
+                    {deal.state === 'completed' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setReviewDeal(deal)}
+                      >
+                        <Star className="mr-1 h-3 w-3" />Leave Review
                       </Button>
                     )}
                     {deal.state === 'active' && (
@@ -381,7 +430,7 @@ const DealsPage = () => {
                         <AlertTriangle className="mr-1 h-3 w-3" />Dispute
                       </Button>
                     )}
-                    {!isTerminal && (
+                    {!isTerminal && deal.state !== 'inquiry' && (
                       <Button
                         size="sm"
                         variant="ghost"
