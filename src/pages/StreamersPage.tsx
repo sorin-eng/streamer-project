@@ -27,6 +27,7 @@ const StreamersPage = () => {
   const [platformFilter, setPlatformFilter] = useState<string | null>(null);
   const [contactDialog, setContactDialog] = useState<{ streamerId: string; name: string } | null>(null);
   const [contactMessage, setContactMessage] = useState('');
+  const [page, setPage] = useState(0);
 
   const filtered = (streamers || []).filter((s: StreamerWithProfile) => {
     const name = s.profiles?.display_name?.toLowerCase() || '';
