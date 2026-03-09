@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { FileUpload } from '@/components/FileUpload';
 import type { DealWithRelations, CommissionWithDeal } from '@/types/supabase-joins';
 
 const ReportsPage = () => {
@@ -28,6 +29,7 @@ const ReportsPage = () => {
   const [periodStart, setPeriodStart] = useState('');
   const [periodEnd, setPeriodEnd] = useState('');
   const [csvData, setCsvData] = useState('');
+  const [csvFile, setCsvFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [computing, setComputing] = useState(false);
   const { toast } = useToast();
@@ -37,10 +39,29 @@ const ReportsPage = () => {
   const pendingCount = commissions?.filter(c => c.status === 'pending').length || 0;
   const approvedCount = commissions?.filter(c => c.status === 'approved').length || 0;
 
+  const handleFileSelect = async (file: File) => {
+    setCsvFile(file);
+    const text = await file.text();
+    setCsvData(text);
+  };
+
   const handleUpload = async () => {
     if (!selectedDeal || !csvData.trim()) return;
     setUploading(true);
     try {
+      // Upload file to storage if we have one
+      let fileUrl: string | null = null;
+      if (csvFile && user?.organizationId) {
+        const filePath = `reports/${user.organizationId}/${Date.now()}_${csvFile.name}`;
+        const { error: storageError } = await supabase.storage
+          .from('documents')
+          .upload(filePath, csvFile);
+        if (!storageError) {
+          const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath);
+          fileUrl = urlData.publicUrl;
+        }
+      }
+
       const lines = csvData.trim().split('\n').filter(l => l.trim());
       const rows = lines.map(line => {
         const [event_type, event_date, amount, player_id] = line.split(',').map(s => s.trim());
@@ -53,13 +74,14 @@ const ReportsPage = () => {
       });
 
       const { data, error } = await supabase.functions.invoke('report-upload', {
-        body: { deal_id: selectedDeal, rows },
+        body: { deal_id: selectedDeal, rows, file_url: fileUrl },
       });
 
       if (error) throw error;
       toast({ title: 'Report uploaded', description: `${data.data.events_count} events processed` });
       setUploadOpen(false);
       setCsvData('');
+      setCsvFile(null);
       qc.invalidateQueries({ queryKey: ['report_uploads'] });
       qc.invalidateQueries({ queryKey: ['commissions'] });
     } catch (err: unknown) {
@@ -187,16 +209,29 @@ const ReportsPage = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>CSV Data</Label>
-              <p className="text-xs text-muted-foreground">Format: event_type, event_date, amount, player_id (one per line)</p>
-              <Textarea
-                value={csvData}
-                onChange={e => setCsvData(e.target.value)}
-                placeholder={`ftd,2026-02-15,100,player_001\ndeposit,2026-02-16,50,player_002\nsignup,2026-02-17,0,player_003`}
-                rows={6}
-                className="font-mono text-xs"
+              <Label>Upload CSV File</Label>
+              <FileUpload
+                onFileSelect={handleFileSelect}
+                accept=".csv"
+                maxSizeMB={10}
+                label="Drop your CSV file here or click to browse"
+                selectedFile={csvFile}
+                onClear={() => { setCsvFile(null); setCsvData(''); }}
               />
             </div>
+            {!csvFile && (
+              <div className="space-y-2">
+                <Label>Or Paste CSV Data</Label>
+                <p className="text-xs text-muted-foreground">Format: event_type, event_date, amount, player_id (one per line)</p>
+                <Textarea
+                  value={csvData}
+                  onChange={e => setCsvData(e.target.value)}
+                  placeholder={`ftd,2026-02-15,100,player_001\ndeposit,2026-02-16,50,player_002`}
+                  rows={4}
+                  className="font-mono text-xs"
+                />
+              </div>
+            )}
             <Button
               className="w-full bg-gradient-brand hover:opacity-90"
               onClick={handleUpload}

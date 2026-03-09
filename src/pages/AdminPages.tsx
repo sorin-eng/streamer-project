@@ -1,13 +1,20 @@
+import { useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useAllProfiles, useVerificationDocuments, useUpdateVerification, useAuditLog } from '@/hooks/useSupabaseData';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
-import { Shield, CheckCircle2, XCircle } from 'lucide-react';
+import { Shield, CheckCircle2, XCircle, UserCog, Ban } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { updateProfileKycStatus, rpcLogComplianceEvent } from '@/lib/supabaseHelpers';
 import { TableSkeleton } from '@/components/PageSkeletons';
+import { SearchBar, PaginationControls } from '@/components/SearchPagination';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
 import type { VerificationDocWithProfile, ProfileWithRole, AuditLogWithProfile } from '@/types/supabase-joins';
+
+const PAGE_SIZE = 20;
 
 export const AdminVerificationsPage = () => {
   const { data: docs, isLoading } = useVerificationDocuments();
@@ -21,10 +28,8 @@ export const AdminVerificationsPage = () => {
   const handleAction = async (id: string, userId: string, status: 'approved' | 'rejected') => {
     try {
       await updateVerification.mutateAsync({ id, status });
-
       const kycStatus = status === 'approved' ? 'verified' : 'rejected';
       await updateProfileKycStatus(userId, kycStatus);
-
       await rpcLogComplianceEvent({
         _event_type: status === 'approved' ? 'kyc.approved' : 'kyc.rejected',
         _entity_type: 'user',
@@ -32,7 +37,6 @@ export const AdminVerificationsPage = () => {
         _details: { verification_document_id: id },
         _severity: status === 'approved' ? 'info' : 'warning',
       });
-
       toast({ title: `Verification ${status}` });
       qc.invalidateQueries({ queryKey: ['all_profiles'] });
     } catch (err: unknown) {
@@ -112,6 +116,53 @@ export const AdminVerificationsPage = () => {
 
 export const AdminUsersPage = () => {
   const { data: profiles, isLoading } = useAllProfiles();
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [roleDialog, setRoleDialog] = useState<ProfileWithRole | null>(null);
+  const [newRole, setNewRole] = useState('');
+
+  const filtered = (profiles || []).filter((p: ProfileWithRole) => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return p.display_name.toLowerCase().includes(s) ||
+      (p.user_roles?.[0]?.role || '').toLowerCase().includes(s);
+  });
+  const totalCount = filtered.length;
+  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const handleChangeRole = async () => {
+    if (!roleDialog || !newRole) return;
+    try {
+      const { error } = await (supabase.rpc as any)('admin_change_role', {
+        _user_id: roleDialog.user_id,
+        _new_role: newRole,
+      });
+      if (error) throw error;
+      toast({ title: 'Role updated' });
+      qc.invalidateQueries({ queryKey: ['all_profiles'] });
+      setRoleDialog(null);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    }
+  };
+
+  const handleToggleSuspend = async (userId: string, currentlySuspended: boolean) => {
+    try {
+      const { error } = await (supabase.rpc as any)('admin_toggle_suspend', {
+        _user_id: userId,
+        _suspended: !currentlySuspended,
+      });
+      if (error) throw error;
+      toast({ title: currentlySuspended ? 'User unsuspended' : 'User suspended' });
+      qc.invalidateQueries({ queryKey: ['all_profiles'] });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -120,6 +171,9 @@ export const AdminUsersPage = () => {
           <h1 className="text-2xl font-bold">Users</h1>
           <p className="text-sm text-muted-foreground">All registered users on the platform</p>
         </div>
+
+        <SearchBar value={search} onChange={v => { setSearch(v); setPage(0); }} placeholder="Search users..." />
+
         {isLoading ? (
           <TableSkeleton rows={6} />
         ) : (
@@ -131,30 +185,85 @@ export const AdminUsersPage = () => {
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Role</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">KYC</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Joined</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {(profiles || []).map((p: ProfileWithRole) => (
-                  <tr key={p.id} className="hover:bg-muted/50 transition-colors">
-                    <td className="px-4 py-3">
-                      <p className="font-medium">{p.display_name}</p>
-                    </td>
-                    <td className="px-4 py-3 capitalize">{p.user_roles?.[0]?.role?.replace('_', ' ') || 'N/A'}</td>
-                    <td className="px-4 py-3"><StatusBadge status={p.kyc_status || 'unverified'} /></td>
-                    <td className="px-4 py-3 text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</td>
-                  </tr>
-                ))}
+                {paginated.map((p: ProfileWithRole) => {
+                  const isSuspended = (p as any).suspended === true;
+                  return (
+                    <tr key={p.id} className={`hover:bg-muted/50 transition-colors ${isSuspended ? 'opacity-50' : ''}`}>
+                      <td className="px-4 py-3">
+                        <p className="font-medium">{p.display_name}</p>
+                        {isSuspended && <span className="text-xs text-destructive">Suspended</span>}
+                      </td>
+                      <td className="px-4 py-3 capitalize">{p.user_roles?.[0]?.role?.replace('_', ' ') || 'N/A'}</td>
+                      <td className="px-4 py-3"><StatusBadge status={p.kyc_status || 'unverified'} /></td>
+                      <td className="px-4 py-3 text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => { setRoleDialog(p); setNewRole(p.user_roles?.[0]?.role || ''); }}>
+                            <UserCog className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className={isSuspended ? 'text-success' : 'text-destructive'}
+                            onClick={() => handleToggleSuspend(p.user_id, isSuspended)}
+                          >
+                            <Ban className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
+
+        <PaginationControls page={page} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
+
+      {/* Role Change Dialog */}
+      <Dialog open={!!roleDialog} onOpenChange={open => { if (!open) setRoleDialog(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Change Role for {roleDialog?.display_name}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Select value={newRole} onValueChange={setNewRole}>
+                <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="streamer">Streamer</SelectItem>
+                  <SelectItem value="casino_manager">Casino Manager</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button className="w-full bg-gradient-brand hover:opacity-90" onClick={handleChangeRole} disabled={!newRole}>
+              Update Role
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
 
 export const AdminAuditPage = () => {
   const { data: logs, isLoading } = useAuditLog();
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+
+  const filtered = (logs || []).filter((log: AuditLogWithProfile) => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return log.action.toLowerCase().includes(s) ||
+      (log.profiles?.display_name || '').toLowerCase().includes(s);
+  });
+  const totalCount = filtered.length;
+  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
     <DashboardLayout>
@@ -163,6 +272,9 @@ export const AdminAuditPage = () => {
           <h1 className="text-2xl font-bold">Audit Log</h1>
           <p className="text-sm text-muted-foreground">Track all platform activity</p>
         </div>
+
+        <SearchBar value={search} onChange={v => { setSearch(v); setPage(0); }} placeholder="Search actions..." />
+
         {isLoading ? (
           <TableSkeleton rows={8} />
         ) : (
@@ -177,7 +289,7 @@ export const AdminAuditPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {(logs || []).map((log: AuditLogWithProfile) => (
+                {paginated.map((log: AuditLogWithProfile) => (
                   <tr key={log.id} className="hover:bg-muted/50 transition-colors">
                     <td className="px-4 py-3 text-muted-foreground text-xs font-mono">{new Date(log.created_at).toLocaleString()}</td>
                     <td className="px-4 py-3 text-xs">{log.profiles?.display_name || 'System'}</td>
@@ -192,6 +304,8 @@ export const AdminAuditPage = () => {
             </table>
           </div>
         )}
+
+        <PaginationControls page={page} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
     </DashboardLayout>
   );
