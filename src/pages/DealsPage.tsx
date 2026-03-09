@@ -242,6 +242,49 @@ const DealsPage = () => {
     setCancelling(false);
   };
 
+  const handleDisputeDeal = async () => {
+    if (!disputeDeal) return;
+    setDisputing(true);
+    try {
+      const { data: valid } = await supabase.rpc('validate_deal_transition', {
+        _deal_id: disputeDeal.id,
+        _to_state: 'disputed',
+        _user_id: user!.id,
+      });
+
+      if (!valid) {
+        toast({ title: 'Cannot dispute', description: 'This deal cannot be disputed in its current state.', variant: 'destructive' });
+        setDisputing(false);
+        return;
+      }
+
+      await supabase.from('deals').update({ state: 'disputed' }).eq('id', disputeDeal.id);
+      await supabase.from('deal_state_log').insert({
+        deal_id: disputeDeal.id,
+        from_state: disputeDeal.state,
+        to_state: 'disputed',
+        changed_by: user!.id,
+        reason: disputeReason || null,
+      });
+
+      await supabase.rpc('log_audit', {
+        _action: 'DISPUTE_DEAL',
+        _entity_type: 'deal',
+        _entity_id: disputeDeal.id,
+        _details: { from: disputeDeal.state, reason: disputeReason },
+      });
+
+      toast({ title: 'Deal disputed' });
+      qc.invalidateQueries({ queryKey: ['deals'] });
+      setDisputeDeal(null);
+      setDisputeReason('');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    }
+    setDisputing(false);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
