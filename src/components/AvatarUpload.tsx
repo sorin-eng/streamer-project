@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { Camera } from 'lucide-react';
+import { uploadAvatar } from '@/core/services/platformService';
 
 interface AvatarUploadProps {
   currentUrl?: string;
@@ -41,26 +41,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({ currentUrl, displayN
 
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop();
-      const filePath = `${user.id}/avatar.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-
-      await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl })
-        .eq('user_id', user.id);
-
+      const publicUrl = await uploadAvatar(user.id, file);
       setPreviewUrl(publicUrl);
       qc.invalidateQueries({ queryKey: ['streamer_profile'] });
       qc.invalidateQueries({ queryKey: ['all_profiles'] });

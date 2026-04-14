@@ -1,73 +1,38 @@
-# Welcome to your Lovable project
+# Streamer Project
 
-## Project info
+Casino ↔ streamer marketplace MVP, built as a real repo-driven app instead of a Lovable-only demo.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Canonical docs
+Use only these two project-management docs:
+- `.lovable/plan.md` — long-term plan, scope, sequencing, guardrails
+- `CHECKLIST.md` — execution checklist and done/open state
 
-## How can I edit this code?
+Do not create separate `CURRENT_STATUS.md`, `PROGRESS.md`, or other handoff/status files again.
+Status lives in `CHECKLIST.md`.
 
-There are several ways of editing your application.
+## Current build rule
+Finish the product in mock/local mode before connecting live Supabase, payments, email, webhooks, or analytics.
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
+## Stack
 - Vite
 - TypeScript
 - React
 - shadcn-ui
 - Tailwind CSS
+- Supabase (parked for deeper live work until the checklist allows it)
 
-## How can I deploy this project?
+## Local development
+```sh
+npm i
+npm run dev
+npm test
+npm run build
+```
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Data mode
+- default mode: mock/local
+- Supabase mode exists for later live validation, not for early proof of completion
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Repo rule
+Lovable can help generate UI, but the repo is the source of truth.
+If the repo and Lovable disagree, trust the repo.

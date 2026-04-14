@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/StatusBadge';
 import { EmptyState } from '@/components/EmptyState';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { LockedLink } from '@/components/LockedLink';
@@ -17,6 +17,7 @@ import type { StreamerWithProfile } from '@/types/supabase-joins';
 import type { Tables } from '@/integrations/supabase/types';
 import { StreamersSkeleton } from '@/components/PageSkeletons';
 import { PaginationControls } from '@/components/SearchPagination';
+import { getErrorMessage } from '@/lib/errors';
 
 const PAGE_SIZE = 12;
 
@@ -53,7 +54,7 @@ const StreamersPage = () => {
       setContactMessage('');
       navigate('/deals');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = getErrorMessage(err);
       toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
@@ -185,6 +186,9 @@ const StreamersPage = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Contact {contactDialog?.name}</DialogTitle>
+            <DialogDescription>
+              Send an inquiry message and start the deal intake flow for this streamer.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">

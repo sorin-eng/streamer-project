@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { MockModeDevPanel } from '@/components/MockModeDevPanel';
 import { Radio, AlertCircle } from 'lucide-react';
 
 const LoginPage = () => {
@@ -16,9 +17,13 @@ const LoginPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email.trim()) {
+      setError('Email is required');
+      return;
+    }
     setError('');
     setLoading(true);
-    const result = await login(email, password);
+    const result = await login(email.trim(), password);
     setLoading(false);
     if (result.ok) navigate('/dashboard');
     else setError(result.error || 'Invalid credentials');
@@ -81,6 +86,8 @@ const LoginPage = () => {
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
+
+          <MockModeDevPanel />
 
           <div className="text-center space-y-2">
             <Link to="/forgot-password" className="text-sm font-medium text-primary hover:underline">Forgot your password?</Link>

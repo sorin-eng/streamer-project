@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useToast } from '@/hooks/use-toast';
 import { Webhook, Plus, Trash2, Eye } from 'lucide-react';
+import { createWebhookEndpoint, deleteWebhookEndpoint as removeWebhookEndpoint, getWebhookDeliveries, getWebhookEndpoints, updateWebhookEndpointActive } from '@/core/services/platformService';
 
 const AVAILABLE_EVENTS = [
   'deal.created', 'deal.state_change', 'deal.completed',
@@ -31,41 +31,19 @@ export const WebhookSettings = () => {
   const { data: endpoints } = useQuery({
     queryKey: ['webhook_endpoints', user?.organizationId],
     enabled: !!user?.organizationId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('webhook_endpoints')
-        .select('*')
-        .eq('organization_id', user!.organizationId!)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: async () => getWebhookEndpoints(user!.organizationId!),
   });
 
   const { data: deliveries } = useQuery({
     queryKey: ['webhook_deliveries', viewEndpoint?.id],
     enabled: !!viewEndpoint,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('webhook_deliveries')
-        .select('*')
-        .eq('endpoint_id', viewEndpoint!.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      return data;
-    },
+    queryFn: async () => getWebhookDeliveries(viewEndpoint!.id),
   });
 
   const createEndpoint = useMutation({
     mutationFn: async () => {
       if (!user?.organizationId || !newUrl.trim()) throw new Error('Missing data');
-      const { error } = await supabase.from('webhook_endpoints').insert({
-        organization_id: user.organizationId,
-        url: newUrl,
-        events: selectedEvents,
-      });
-      if (error) throw error;
+      await createWebhookEndpoint({ organizationId: user.organizationId, url: newUrl, events: selectedEvents });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['webhook_endpoints'] });
@@ -79,17 +57,13 @@ export const WebhookSettings = () => {
 
   const toggleActive = useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase.from('webhook_endpoints').update({ active }).eq('id', id);
-      if (error) throw error;
+      await updateWebhookEndpointActive(id, active);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['webhook_endpoints'] }),
   });
 
   const deleteEndpoint = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('webhook_endpoints').delete().eq('id', id);
-      if (error) throw error;
-    },
+    mutationFn: async (id: string) => removeWebhookEndpoint(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['webhook_endpoints'] });
       toast({ title: 'Endpoint deleted' });
@@ -104,10 +78,13 @@ export const WebhookSettings = () => {
 
   return (
     <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-semibold flex items-center gap-2">
-          <Webhook className="h-4 w-4" /> Webhook Endpoints
-        </h2>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-semibold flex items-center gap-2">
+            <Webhook className="h-4 w-4" /> Webhook Endpoints
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">Use this only if internal tools need deal or commission events pushed out automatically.</p>
+        </div>
         <Button size="sm" variant="outline" onClick={() => setCreateOpen(true)}>
           <Plus className="mr-1 h-3 w-3" /> Add Endpoint
         </Button>
@@ -127,11 +104,12 @@ export const WebhookSettings = () => {
                 <Switch
                   checked={ep.active}
                   onCheckedChange={(active) => toggleActive.mutate({ id: ep.id, active })}
+                  aria-label={`Toggle ${ep.url}`}
                 />
-                <Button size="sm" variant="ghost" onClick={() => setViewEndpoint(ep)}>
+                <Button size="sm" variant="ghost" aria-label={`View deliveries for ${ep.url}`} onClick={() => setViewEndpoint(ep)}>
                   <Eye className="h-3 w-3" />
                 </Button>
-                <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteEndpoint.mutate(ep.id)}>
+                <Button size="sm" variant="ghost" aria-label={`Delete ${ep.url}`} className="text-destructive" onClick={() => deleteEndpoint.mutate(ep.id)}>
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
@@ -143,7 +121,10 @@ export const WebhookSettings = () => {
       {/* Create Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Add Webhook Endpoint</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Add Webhook Endpoint</DialogTitle>
+            <DialogDescription>Configure a callback URL for the specific events your ops stack actually needs.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Endpoint URL</Label>
@@ -174,7 +155,10 @@ export const WebhookSettings = () => {
       {/* Deliveries Dialog */}
       <Dialog open={!!viewEndpoint} onOpenChange={open => { if (!open) setViewEndpoint(null); }}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle>Delivery History</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Delivery History</DialogTitle>
+            <DialogDescription>Inspect recent delivery attempts so failed automation is obvious instead of mysterious.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-2">
             <p className="text-xs font-mono text-muted-foreground truncate">{viewEndpoint?.url}</p>
             <p className="text-xs text-muted-foreground">Secret: <code className="bg-muted px-1 rounded">{viewEndpoint?.secret?.slice(0, 12)}...</code></p>

@@ -1,20 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { getAuthService } from '@/core/services/registry';
+import type { AppRole } from '@/core/services/authService';
+import type { AppUser } from '@/core/domain/types';
 
-type AppRole = 'casino_manager' | 'streamer' | 'admin';
-
-export interface AppUser {
-  id: string;
-  email: string;
-  role: AppRole;
-  displayName: string;
-  avatarUrl?: string;
-  verified: boolean;
-  organizationId?: string;
-  suspended: boolean;
-  emailConfirmed: boolean;
-}
+export type { AppUser } from '@/core/domain/types';
 
 interface AuthContextType {
   user: AppUser | null;
@@ -26,137 +15,48 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function buildAppUser(supaUser: SupabaseUser): Promise<AppUser> {
-  const emailConfirmed = !!supaUser.email_confirmed_at;
-
-  // Fetch role
-  const { data: roleRow } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', supaUser.id)
-    .maybeSingle();
-
-  // Fetch profile (including suspended)
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('display_name, avatar_url, suspended')
-    .eq('user_id', supaUser.id)
-    .maybeSingle();
-
-  // Fetch org membership
-  const { data: orgMember } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', supaUser.id)
-    .maybeSingle();
-
-  // Check verification
-  const role = (roleRow?.role as AppRole) || 'streamer';
-  let verified = false;
-  if (role === 'streamer') {
-    const { data: sp } = await supabase
-      .from('streamer_profiles')
-      .select('verified')
-      .eq('user_id', supaUser.id)
-      .maybeSingle();
-    verified = sp?.verified === 'approved';
-  } else if (role === 'casino_manager' && orgMember?.organization_id) {
-    const { data: cp } = await supabase
-      .from('casino_programs')
-      .select('verified')
-      .eq('organization_id', orgMember.organization_id)
-      .maybeSingle();
-    verified = cp?.verified === 'approved';
-  } else if (role === 'admin') {
-    verified = true;
-  }
-
-  return {
-    id: supaUser.id,
-    email: supaUser.email || '',
-    role,
-    displayName: profile?.display_name || supaUser.email?.split('@')[0] || '',
-    avatarUrl: profile?.avatar_url || undefined,
-    verified,
-    organizationId: orgMember?.organization_id || undefined,
-    suspended: (profile as Record<string, unknown>)?.suspended === true,
-    emailConfirmed,
-  };
-}
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        setTimeout(async () => {
-          const appUser = await buildAppUser(session.user);
-          setUser(appUser);
-          setIsLoading(false);
-        }, 0);
-      } else {
-        setUser(null);
-        setIsLoading(false);
-      }
+    const authService = getAuthService();
+
+    const syncUser = async () => {
+      const appUser = await authService.getCurrentUser();
+      setUser(appUser);
+      setIsLoading(false);
+    };
+
+    const subscription = authService.onAuthStateChange(() => {
+      setTimeout(() => {
+        void syncUser();
+      }, 0);
     });
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const appUser = await buildAppUser(session.user);
-        setUser(appUser);
-      }
-      setIsLoading(false);
-    });
+    void syncUser();
 
     return () => subscription.unsubscribe();
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      // Handle unconfirmed email
-      if (error.message.toLowerCase().includes('email not confirmed')) {
-        return { ok: false, error: 'Please check your email and verify your account before signing in.' };
-      }
-      return { ok: false, error: error.message };
+    const result = await getAuthService().login(email, password);
+    if (result.ok) {
+      setUser(await getAuthService().getCurrentUser());
     }
-    // Check email confirmation
-    if (data.user && !data.user.email_confirmed_at) {
-      await supabase.auth.signOut();
-      return { ok: false, error: 'Please check your email and verify your account before signing in.' };
-    }
-    return { ok: true };
+    return result;
   }, []);
 
   const signup = useCallback(async (email: string, password: string, role: AppRole, displayName: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { display_name: displayName } },
-    });
-    if (error) return { ok: false, error: error.message };
-    if (!data.user) return { ok: false, error: 'Signup failed' };
-
-    const userId = data.user.id;
-
-    const { error: setupError } = await (supabase.rpc as any)('setup_new_user', {
-      _user_id: userId,
-      _role: role,
-      _display_name: displayName,
-    });
-
-    if (setupError) {
-      console.error('Setup error:', setupError);
-      return { ok: false, error: 'Account created but setup failed. Please contact support.' };
+    const result = await getAuthService().signup(email, password, role, displayName);
+    if (result.ok) {
+      setUser(await getAuthService().getCurrentUser());
     }
-
-    return { ok: true };
+    return result;
   }, []);
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+    await getAuthService().logout();
     setUser(null);
   }, []);
 

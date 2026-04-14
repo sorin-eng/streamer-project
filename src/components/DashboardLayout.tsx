@@ -8,42 +8,71 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ComplianceBypassBanner } from '@/components/ComplianceBypassBanner';
+import { MockModeDevPanel } from '@/components/MockModeDevPanel';
 import { useUnreadDeals } from '@/hooks/useSupabaseData';
 import { NotificationBell } from '@/components/NotificationBell';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
-const navByRole: Record<string, { to: string; label: string; icon: any }[]> = {
+type NavItem = { to: string; label: string; icon: any };
+type NavSection = { title: string; items: NavItem[] };
+
+const navByRole: Record<string, NavSection[]> = {
   casino_manager: [
-    { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/streamers', label: 'Browse Streamers', icon: Search },
-    { to: '/campaigns', label: 'Campaigns', icon: Megaphone },
-    { to: '/deals', label: 'Deals', icon: Handshake },
-    { to: '/contracts', label: 'Contracts', icon: FileText },
-    { to: '/messages', label: 'Messages', icon: MessageSquare },
-    { to: '/reports', label: 'Reports', icon: BarChart3 },
-    { to: '/profile', label: 'Profile', icon: Settings },
-    { to: '/settings', label: 'Settings', icon: Settings },
+    {
+      title: 'Core workflow',
+      items: [
+        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/streamers', label: 'Browse Streamers', icon: Search },
+        { to: '/deals', label: 'Deals', icon: Handshake },
+        { to: '/contracts', label: 'Contracts', icon: FileText },
+        { to: '/reports', label: 'Reports', icon: BarChart3 },
+      ],
+    },
+    {
+      title: 'Supporting tools',
+      items: [
+        { to: '/messages', label: 'Deal Messages', icon: MessageSquare },
+        { to: '/campaigns', label: 'Campaign Intake', icon: Megaphone },
+        { to: '/profile', label: 'Profile', icon: Settings },
+        { to: '/settings', label: 'Settings', icon: Settings },
+      ],
+    },
   ],
   streamer: [
-    { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/listings', label: 'My Listings', icon: Tag },
-    { to: '/campaigns', label: 'Browse Campaigns', icon: Megaphone },
-    { to: '/deals', label: 'My Deals', icon: Handshake },
-    { to: '/contracts', label: 'Contracts', icon: FileText },
-    { to: '/messages', label: 'Messages', icon: MessageSquare },
-    { to: '/reports', label: 'Earnings', icon: BarChart3 },
-    { to: '/profile', label: 'Profile', icon: Settings },
-    { to: '/settings', label: 'Settings', icon: Settings },
+    {
+      title: 'Core workflow',
+      items: [
+        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/listings', label: 'My Listings', icon: Tag },
+        { to: '/deals', label: 'My Deals', icon: Handshake },
+        { to: '/contracts', label: 'Contracts', icon: FileText },
+        { to: '/reports', label: 'Earnings', icon: BarChart3 },
+      ],
+    },
+    {
+      title: 'Supporting tools',
+      items: [
+        { to: '/messages', label: 'Deal Messages', icon: MessageSquare },
+        { to: '/campaigns', label: 'Optional Campaigns', icon: Megaphone },
+        { to: '/profile', label: 'Profile', icon: Settings },
+        { to: '/settings', label: 'Settings', icon: Settings },
+      ],
+    },
   ],
   admin: [
-    { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/streamers', label: 'Browse Streamers', icon: Search },
-    { to: '/admin/verifications', label: 'Verifications', icon: Shield },
-    { to: '/admin/users', label: 'Users', icon: Users },
-    { to: '/campaigns', label: 'Campaigns', icon: Megaphone },
-    { to: '/deals', label: 'Deals', icon: Handshake },
-    { to: '/contracts', label: 'Contracts', icon: FileText },
-    { to: '/admin/audit', label: 'Audit Log', icon: FileText },
+    {
+      title: 'Operations',
+      items: [
+        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/streamers', label: 'Browse Streamers', icon: Search },
+        { to: '/admin/verifications', label: 'Verifications', icon: Shield },
+        { to: '/admin/users', label: 'Users', icon: Users },
+        { to: '/deals', label: 'Deals', icon: Handshake },
+        { to: '/contracts', label: 'Contracts', icon: FileText },
+        { to: '/campaigns', label: 'Campaigns', icon: Megaphone },
+        { to: '/admin/audit', label: 'Audit Log', icon: FileText },
+      ],
+    },
   ],
 };
 
@@ -56,7 +85,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
   if (!user) return null;
 
-  const navItems = navByRole[user.role] || [];
+  const navSections = navByRole[user.role] || [];
 
   const handleLogout = async () => {
     await logout();
@@ -85,31 +114,38 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
-          {navItems.map(item => {
-            const active = location.pathname === item.to;
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-sidebar-accent text-sidebar-primary"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-                {(item.to === '/deals' || item.to === '/messages') && (unreadCount ?? 0) > 0 && (
-                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground px-1">
-                    {unreadCount}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 space-y-4 px-3 py-4 overflow-y-auto">
+          {navSections.map((section) => (
+            <div key={section.title} className="space-y-1">
+              <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/70">
+                {section.title}
+              </p>
+              {section.items.map(item => {
+                const active = location.pathname === item.to;
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setSidebarOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                      active
+                        ? "bg-sidebar-accent text-sidebar-primary"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                    {(item.to === '/deals' || item.to === '/messages') && (unreadCount ?? 0) > 0 && (
+                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground px-1">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="border-t border-sidebar-border p-4">
@@ -147,6 +183,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 lg:p-8">
+          <MockModeDevPanel className="mb-4" />
           {children}
         </div>
       </main>

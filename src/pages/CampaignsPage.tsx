@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -9,12 +10,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Megaphone, Plus, Globe, Clock, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { SearchBar, PaginationControls } from '@/components/SearchPagination';
 import type { CampaignWithOrg } from '@/types/supabase-joins';
 import { CampaignsSkeleton } from '@/components/PageSkeletons';
+import { getErrorMessage } from '@/lib/errors';
 
 const PAGE_SIZE = 20;
 
@@ -27,6 +29,7 @@ const CampaignsPage = () => {
   const [applyMsg, setApplyMsg] = useState('');
   const [dealType, setDealType] = useState<'revshare' | 'cpa' | 'hybrid' | 'flat_fee'>('cpa');
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const { data: campaigns, isLoading } = useCampaigns(search);
   const createCampaign = useCreateCampaign();
@@ -54,7 +57,7 @@ const CampaignsPage = () => {
       setCreateOpen(false);
       toast({ title: 'Campaign created' });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = getErrorMessage(err);
       toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
@@ -67,7 +70,7 @@ const CampaignsPage = () => {
       setApplyMsg('');
       toast({ title: 'Application submitted!' });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = getErrorMessage(err);
       toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
@@ -78,7 +81,11 @@ const CampaignsPage = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">{isCasino ? 'My Campaigns' : 'Browse Campaigns'}</h1>
-            <p className="text-sm text-muted-foreground">{isCasino ? 'Create and manage your streamer campaigns' : 'Find partnership opportunities'}</p>
+            <p className="text-sm text-muted-foreground">
+              {isCasino
+                ? 'Use campaigns to collect applications, then move the real work into Deals.'
+                : 'Apply when a casino is collecting interest. Once accepted, the partnership continues in Deals.'}
+            </p>
           </div>
           {isCasino && (
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -86,7 +93,10 @@ const CampaignsPage = () => {
                 <Button className="bg-gradient-brand hover:opacity-90"><Plus className="mr-2 h-4 w-4" />New Campaign</Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-lg">
-                <DialogHeader><DialogTitle>Create Campaign</DialogTitle></DialogHeader>
+                <DialogHeader>
+                  <DialogTitle>Create Campaign</DialogTitle>
+                  <DialogDescription>Define a campaign only when you want structured intake before moving the partnership into Deals.</DialogDescription>
+                </DialogHeader>
                 <form className="space-y-4" onSubmit={handleCreate}>
                   <div className="space-y-2"><Label>Title</Label><Input name="title" placeholder="e.g. Summer Slots Promotion" required /></div>
                   <div className="space-y-2"><Label>Description</Label><Textarea name="description" placeholder="Describe the campaign requirements..." rows={3} /></div>
@@ -117,6 +127,15 @@ const CampaignsPage = () => {
           )}
         </div>
 
+        <div className="rounded-xl border border-primary/20 bg-primary/[0.04] p-5 shadow-card space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Supporting surface</p>
+          <h2 className="font-semibold text-lg">Campaigns are optional intake, not the main product.</h2>
+          <p className="text-sm text-muted-foreground">
+            Discovery, negotiation, contracts, and execution should ultimately live in Deals. Campaigns are just a cleaner way to gather interest.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => navigate('/deals')}>Open Deals</Button>
+        </div>
+
         <SearchBar value={search} onChange={v => { setSearch(v); setPage(0); }} placeholder="Search campaigns..." />
 
         {isLoading ? (
@@ -143,7 +162,9 @@ const CampaignsPage = () => {
                 <div className="mt-4 flex items-center justify-between">
                   <StatusBadge status={c.deal_type} />
                   {isCasino ? (
-                    <Button variant="outline" size="sm">Manage</Button>
+                    <Button variant="outline" size="sm" onClick={() => navigate('/deals')}>
+                      Open Deals
+                    </Button>
                   ) : user?.role === 'streamer' && c.status === 'open' ? (
                     <Button size="sm" className="bg-gradient-brand hover:opacity-90" onClick={() => setApplyOpen(c.id)}>Apply Now</Button>
                   ) : null}
@@ -156,15 +177,18 @@ const CampaignsPage = () => {
         <PaginationControls page={page} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
 
-      <Dialog open={!!applyOpen} onOpenChange={open => { if (!open) setApplyOpen(null); }}>
+      <Dialog open={!!applyOpen} onOpenChange={open => { if (!open) { setApplyOpen(null); setApplyMsg(''); } }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Apply to Campaign</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Apply to Campaign</DialogTitle>
+            <DialogDescription>Tell the casino why your audience fits, then expect the real workflow to continue inside Deals after acceptance.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Your message</Label>
               <Textarea value={applyMsg} onChange={e => setApplyMsg(e.target.value)} placeholder="Tell the casino why you're a great fit..." rows={4} />
             </div>
-            <Button onClick={handleApply} className="w-full bg-gradient-brand hover:opacity-90" disabled={submitApplication.isPending}>
+            <Button onClick={handleApply} className="w-full bg-gradient-brand hover:opacity-90" disabled={submitApplication.isPending || !applyMsg.trim()}>
               {submitApplication.isPending ? 'Submitting...' : 'Submit Application'}
             </Button>
           </div>

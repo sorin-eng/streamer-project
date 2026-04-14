@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useDeals, useDealMessages, useSendMessage } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import type { DealWithRelations, DealMessageWithSender } from '@/types/supabase-joins';
+import { isMockMode } from '@/data/dataMode';
 
 const MessagesPage = () => {
   const { user } = useAuth();
@@ -33,7 +34,9 @@ const MessagesPage = () => {
 
   // Realtime subscription - invalidate query on new messages
   useEffect(() => {
+    if (isMockMode()) return;
     if (!selectedDeal) return;
+
     const channel = supabase
       .channel(`messages-${selectedDeal}`)
       .on('postgres_changes', {
@@ -64,15 +67,42 @@ const MessagesPage = () => {
   if (!deals?.length) {
     return (
       <DashboardLayout>
-        <EmptyState icon={<MessageSquare className="h-6 w-6" />} title="No conversations" description="Messages will appear when you have active deals." />
+        <div className="space-y-6 animate-fade-in">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">Deal Messages</h1>
+              <p className="text-sm text-muted-foreground">This inbox only exists to keep communication attached to a deal.</p>
+            </div>
+            <Link to="/deals"><Button variant="outline">Back to Deals</Button></Link>
+          </div>
+          <div className="rounded-xl border border-primary/20 bg-primary/[0.04] p-5 shadow-card space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Deal communication only</p>
+            <p className="text-sm text-muted-foreground">Once an inquiry becomes a real deal, messages show up here. Until then, this page should stay quiet.</p>
+          </div>
+          <EmptyState icon={<MessageSquare className="h-6 w-6" />} title="No deal threads yet" description="Messages appear after an inquiry turns into a deal." action={<Link to="/deals"><Button className="bg-gradient-brand hover:opacity-90">Open Deals</Button></Link>} />
+        </div>
       </DashboardLayout>
     );
   }
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-[calc(100dvh-10rem)] animate-fade-in">
-        <div className="md:hidden mb-3">
+      <div className="space-y-4 animate-fade-in">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Deal Messages</h1>
+            <p className="text-sm text-muted-foreground">Use this page only for conversations tied to an active deal pipeline.</p>
+          </div>
+          <Link to="/deals"><Button variant="outline">Back to Deals</Button></Link>
+        </div>
+
+        <div className="rounded-xl border border-primary/20 bg-primary/[0.04] p-4 shadow-card space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Deal communication only</p>
+          <p className="text-sm text-muted-foreground">Messages are here to keep negotiation and execution attached to a partnership, not to become a standalone chat product.</p>
+        </div>
+
+        <div className="flex flex-col h-[calc(100dvh-14rem)]">
+          <div className="md:hidden mb-3">
           <Select value={selectedDeal || ''} onValueChange={setSelectedDeal}>
             <SelectTrigger>
               <SelectValue placeholder="Select a deal thread..." />
@@ -133,19 +163,20 @@ const MessagesPage = () => {
               })}
               {(!messages || messages.length === 0) && (
                 <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                  No messages yet. Start the conversation!
+                  No messages yet. Use this thread to keep the deal moving.
                 </div>
               )}
             </div>
             <div className="p-4 border-t border-border">
               <div className="flex gap-2">
                 <Input
-                  placeholder="Type a message..."
+                  placeholder="Reply inside this deal thread..."
                   value={newMessage}
                   onChange={e => setNewMessage(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSend()}
+                  aria-label="Message input"
                 />
-                <Button className="bg-gradient-brand hover:opacity-90" onClick={handleSend} disabled={sendMessage.isPending}>
+                <Button className="bg-gradient-brand hover:opacity-90" aria-label="Send message" onClick={handleSend} disabled={sendMessage.isPending}>
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
@@ -153,6 +184,7 @@ const MessagesPage = () => {
           </div>
         </div>
       </div>
+    </div>
     </DashboardLayout>
   );
 };

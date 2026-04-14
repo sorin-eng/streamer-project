@@ -10,7 +10,7 @@ import { updateProfileKycStatus, rpcLogComplianceEvent, rpcAdminChangeRole, rpcA
 import { TableSkeleton } from '@/components/PageSkeletons';
 import { SearchBar, PaginationControls } from '@/components/SearchPagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { VerificationDocWithProfile, ProfileWithRole, AuditLogWithProfile } from '@/types/supabase-joins';
 
 const PAGE_SIZE = 20;
@@ -193,12 +193,18 @@ export const AdminUsersPage = () => {
                       <td className="px-4 py-3 text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
-                          <Button size="sm" variant="ghost" onClick={() => { setRoleDialog(p); setNewRole(p.user_roles?.[0]?.role || ''); }}>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            aria-label={`Change role for ${p.display_name}`}
+                            onClick={() => { setRoleDialog(p); setNewRole(p.user_roles?.[0]?.role || ''); }}
+                          >
                             <UserCog className="h-3 w-3" />
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
+                            aria-label={`${isSuspended ? 'Unsuspend' : 'Suspend'} ${p.display_name}`}
                             className={isSuspended ? 'text-success' : 'text-destructive'}
                             onClick={() => handleToggleSuspend(p.user_id, isSuspended)}
                           >
@@ -220,7 +226,10 @@ export const AdminUsersPage = () => {
       {/* Role Change Dialog */}
       <Dialog open={!!roleDialog} onOpenChange={open => { if (!open) setRoleDialog(null); }}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Change Role for {roleDialog?.display_name}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Change Role for {roleDialog?.display_name}</DialogTitle>
+            <DialogDescription>Update the selected user’s role in mock/local admin mode.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Select value={newRole} onValueChange={setNewRole}>

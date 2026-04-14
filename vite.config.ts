@@ -18,4 +18,36 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+
+          if (id.includes("@supabase")) return "vendor-supabase";
+
+          if (
+            id.includes("react-router") ||
+            id.includes("react-dom") ||
+            id.includes("react/") ||
+            id.includes("scheduler") ||
+            id.includes("@tanstack")
+          ) {
+            return "vendor-react";
+          }
+
+          if (
+            id.includes("@radix-ui") ||
+            id.includes("lucide-react") ||
+            id.includes("embla-carousel-react") ||
+            id.includes("next-themes") ||
+            id.includes("sonner") ||
+            id.includes("vaul")
+          ) {
+            return "vendor-ui";
+          }
+        },
+      },
+    },
+  },
 }));

@@ -29,11 +29,13 @@ const SignupPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!displayName.trim()) { setError('Display name is required'); return; }
+    if (!email.trim()) { setError('Email is required'); return; }
     if (!ageConfirmed) { setError('You must confirm you are 18+'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
     setError('');
     setLoading(true);
-    const result = await signup(email, password, role, displayName);
+    const result = await signup(email.trim(), password, role, displayName.trim());
     setLoading(false);
     if (result.ok) setEmailSent(true);
     else setError(result.error || 'Signup failed');

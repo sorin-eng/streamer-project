@@ -7,11 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/StatusBadge';
 import { EmptyState } from '@/components/EmptyState';
 import { Plus, Edit2, Trash2, DollarSign, Tag, Pause, Play } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/lib/errors';
 
 const PRICING_TYPES = [
   { value: 'fixed_per_stream', label: 'Fixed Per Stream' },
@@ -56,6 +57,12 @@ const ListingsPage = () => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const platforms = PLATFORMS.filter(p => fd.get(`platform_${p}`) === 'on');
+
+    if (platforms.length === 0) {
+      toast({ title: 'Error', description: 'Select at least one platform for the listing.', variant: 'destructive' });
+      return;
+    }
+
     const values = {
       title: fd.get('title') as string,
       description: fd.get('description') as string,
@@ -78,17 +85,19 @@ const ListingsPage = () => {
       setDialogOpen(false);
       setEditingId(null);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = getErrorMessage(err);
       toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
 
   const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this listing?')) return;
+
     try {
       await deleteListing.mutateAsync(id);
       toast({ title: 'Listing deleted' });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = getErrorMessage(err);
       toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
@@ -99,7 +108,7 @@ const ListingsPage = () => {
       await updateListing.mutateAsync({ id, status: newStatus });
       toast({ title: `Listing ${newStatus === 'active' ? 'activated' : 'paused'}` });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = getErrorMessage(err);
       toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
@@ -119,6 +128,7 @@ const ListingsPage = () => {
             <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>{editingId ? 'Edit Listing' : 'Create Listing'}</DialogTitle>
+                <DialogDescription>Define the offer casinos see when deciding whether to contact you.</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
@@ -215,13 +225,13 @@ const ListingsPage = () => {
                 ))}
               </div>
               <div className="flex gap-2 pt-1">
-                <Button size="sm" variant="outline" onClick={() => openEdit(listing.id)}>
+                <Button size="sm" variant="outline" aria-label={`Edit ${listing.title}`} onClick={() => openEdit(listing.id)}>
                   <Edit2 className="mr-1 h-3 w-3" />Edit
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => handleToggleStatus(listing.id, listing.status)}>
+                <Button size="sm" variant="outline" aria-label={`${listing.status === 'active' ? 'Pause' : 'Activate'} ${listing.title}`} onClick={() => handleToggleStatus(listing.id, listing.status)}>
                   {listing.status === 'active' ? <><Pause className="mr-1 h-3 w-3" />Pause</> : <><Play className="mr-1 h-3 w-3" />Activate</>}
                 </Button>
-                <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleDelete(listing.id)}>
+                <Button size="sm" variant="ghost" aria-label={`Delete ${listing.title}`} className="text-destructive hover:text-destructive" onClick={() => handleDelete(listing.id)}>
                   <Trash2 className="mr-1 h-3 w-3" />Delete
                 </Button>
               </div>

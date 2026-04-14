@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
+  latestEligibleBirthDate,
   useComplianceStatus,
   useSubmitAgeVerification,
   useAcceptDisclaimer,
@@ -8,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Shield, Calendar, FileText, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
@@ -21,21 +22,10 @@ interface ComplianceGateProps {
 export const ComplianceGate: React.FC<ComplianceGateProps> = ({ children, requireKyc = false }) => {
   const { user } = useAuth();
   const { data: compliance, isLoading } = useComplianceStatus();
-  const [showAgeGate, setShowAgeGate] = useState(false);
-  const [showDisclaimers, setShowDisclaimers] = useState(false);
   const [dob, setDob] = useState('');
   const submitAge = useSubmitAgeVerification();
   const acceptDisclaimer = useAcceptDisclaimer();
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (!compliance || isLoading) return;
-    if (!compliance.age_verified) {
-      setShowAgeGate(true);
-    } else if (!compliance.terms_accepted || !compliance.privacy_accepted) {
-      setShowDisclaimers(true);
-    }
-  }, [compliance, isLoading]);
 
   if (isLoading) {
     return (
@@ -47,10 +37,12 @@ export const ComplianceGate: React.FC<ComplianceGateProps> = ({ children, requir
 
   if (!user) return <>{children}</>;
 
+  const showAgeGate = Boolean(compliance && !compliance.age_verified);
+  const showDisclaimers = Boolean(compliance && !showAgeGate && (!compliance.terms_accepted || !compliance.privacy_accepted));
+
   const handleAgeSubmit = async () => {
     try {
       await submitAge.mutateAsync({ date_of_birth: dob });
-      setShowAgeGate(false);
       toast({ title: 'Age verified' });
     } catch (err: any) {
       toast({ title: 'Age verification failed', description: err.message, variant: 'destructive' });
@@ -65,7 +57,6 @@ export const ComplianceGate: React.FC<ComplianceGateProps> = ({ children, requir
       if (!compliance?.privacy_accepted) {
         await acceptDisclaimer.mutateAsync({ disclaimer_type: 'privacy', disclaimer_version: '1.0' });
       }
-      setShowDisclaimers(false);
       toast({ title: 'Disclaimers accepted' });
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -104,6 +95,9 @@ export const ComplianceGate: React.FC<ComplianceGateProps> = ({ children, requir
               <Calendar className="h-5 w-5 text-primary" />
               Age Verification Required
             </DialogTitle>
+            <DialogDescription>
+              Confirm your age before using features related to gambling partnerships and payouts.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="rounded-lg border border-warning/20 bg-warning/5 p-3">
@@ -119,7 +113,7 @@ export const ComplianceGate: React.FC<ComplianceGateProps> = ({ children, requir
                 type="date"
                 value={dob}
                 onChange={(e) => setDob(e.target.value)}
-                max={new Date(Date.now() - 18 * 365.25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                max={latestEligibleBirthDate(18)}
                 required
               />
             </div>
@@ -144,6 +138,9 @@ export const ComplianceGate: React.FC<ComplianceGateProps> = ({ children, requir
               <FileText className="h-5 w-5 text-primary" />
               Accept Legal Disclaimers
             </DialogTitle>
+            <DialogDescription>
+              Review the platform terms and compliance disclaimers before continuing.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="rounded-lg border border-border bg-muted p-4 space-y-3 max-h-60 overflow-y-auto text-sm text-muted-foreground">
@@ -174,7 +171,7 @@ export const ComplianceGate: React.FC<ComplianceGateProps> = ({ children, requir
         </DialogContent>
       </Dialog>
 
-      {children}
+      {!showAgeGate && !showDisclaimers ? children : null}
     </>
   );
 };

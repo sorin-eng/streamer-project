@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { complianceBypass } from '@/config/complianceBypass';
 import {
@@ -11,12 +10,58 @@ import {
   queryDisclaimerAcceptance,
   updateProfileKycStatus,
 } from '@/lib/supabaseHelpers';
+import { checkComplianceGate, submitKycDocument } from '@/core/services/platformService';
 
 interface ComplianceGateResult {
   user_compliance: ComplianceStatus;
   geo_allowed: boolean;
   gate_passed: boolean;
   blockers: string[];
+}
+
+function padDatePart(value: number) {
+  return String(value).padStart(2, '0');
+}
+
+export function latestEligibleBirthDate(minAge: number, today: Date = new Date()): string {
+  const year = today.getFullYear() - minAge;
+  const monthIndex = today.getMonth();
+  const maxDayInTargetMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const day = Math.min(today.getDate(), maxDayInTargetMonth);
+
+  return `${year}-${padDatePart(monthIndex + 1)}-${padDatePart(day)}`;
+}
+
+export function calculateAgeOnDate(dateOfBirth: string, today: Date = new Date()): number {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateOfBirth);
+  if (!match) {
+    throw new Error('Invalid date of birth');
+  }
+
+  const year = Number.parseInt(match[1]!, 10);
+  const monthIndex = Number.parseInt(match[2]!, 10) - 1;
+  const day = Number.parseInt(match[3]!, 10);
+  const dob = new Date(year, monthIndex, day);
+
+  if (
+    Number.isNaN(dob.getTime()) ||
+    dob.getFullYear() !== year ||
+    dob.getMonth() !== monthIndex ||
+    dob.getDate() !== day
+  ) {
+    throw new Error('Invalid date of birth');
+  }
+
+  let age = today.getFullYear() - year;
+  const hasHadBirthdayThisYear =
+    today.getMonth() > monthIndex ||
+    (today.getMonth() === monthIndex && today.getDate() >= day);
+
+  if (!hasHadBirthdayThisYear) {
+    age -= 1;
+  }
+
+  return age;
 }
 
 async function applyBypass(userId: string): Promise<ComplianceStatus> {
@@ -114,11 +159,7 @@ export function useComplianceGate() {
         };
       }
 
-      const { data, error } = await supabase.functions.invoke('check-compliance', {
-        body: params,
-      });
-      if (error) throw error;
-      return data.data as ComplianceGateResult;
+      return await checkComplianceGate(params) as ComplianceGateResult;
     },
   });
 }
@@ -134,9 +175,7 @@ export function useSubmitAgeVerification() {
     }) => {
       if (!user) throw new Error('Not authenticated');
 
-      const dob = new Date(params.date_of_birth);
-      const today = new Date();
-      const age = today.getFullYear() - dob.getFullYear();
+      const age = calculateAgeOnDate(params.date_of_birth);
       const minAge = params.min_age || 18;
 
       if (age < minAge) {
@@ -202,25 +241,7 @@ export function useSubmitKycDocument() {
     mutationFn: async (params: { document_type: string; file: File }) => {
       if (!user) throw new Error('Not authenticated');
 
-      const filePath = `${user.id}/kyc_${Date.now()}_${params.file.name}`;
-      const { error: uploadErr } = await supabase.storage
-        .from('documents')
-        .upload(filePath, params.file);
-      if (uploadErr) throw uploadErr;
-
-      const { data: urlData } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath);
-
-      const { error: docErr } = await supabase
-        .from('verification_documents')
-        .insert({
-          user_id: user.id,
-          document_type: params.document_type,
-          file_url: urlData.publicUrl || filePath,
-          status: 'pending',
-        });
-      if (docErr) throw docErr;
+      await submitKycDocument({ userId: user.id, documentType: params.document_type, file: params.file });
 
       await updateProfileKycStatus(user.id, 'pending');
 

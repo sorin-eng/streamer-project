@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Radio, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { isMockMode } from '@/data/dataMode';
+import { getAuthService } from '@/core/services/registry';
 
 const ResetPasswordPage = () => {
   const [password, setPassword] = useState('');
@@ -16,14 +17,19 @@ const ResetPasswordPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (isMockMode()) {
+      setHasRecovery(true);
+      return;
+    }
+
     // Check for recovery token in URL hash
     const hash = window.location.hash;
     if (hash.includes('type=recovery')) {
       setHasRecovery(true);
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+    const subscription = getAuthService().onAuthStateChange((state) => {
+      if (state.event === 'PASSWORD_RECOVERY') {
         setHasRecovery(true);
       }
     });
@@ -36,9 +42,9 @@ const ResetPasswordPage = () => {
     if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
     setError('');
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password });
+    const result = await getAuthService().updatePassword(password);
     setLoading(false);
-    if (error) setError(error.message);
+    if (!result.ok) setError(result.error || 'Failed to update password');
     else {
       setSuccess(true);
       setTimeout(() => navigate('/dashboard'), 2000);

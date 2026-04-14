@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { EmptyState } from '@/components/EmptyState';
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import type { StreamerWithProfile } from '@/types/supabase-joins';
 import type { Tables } from '@/integrations/supabase/types';
+import { getErrorMessage } from '@/lib/errors';
 
 const StreamerDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -43,7 +44,7 @@ const StreamerDetailPage = () => {
       setContactMessage('');
       navigate('/deals');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = getErrorMessage(err);
       toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
@@ -180,6 +181,9 @@ const StreamerDetailPage = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Contact {displayName}</DialogTitle>
+            <DialogDescription>
+              Send an inquiry message and start the deal intake flow for this streamer.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">

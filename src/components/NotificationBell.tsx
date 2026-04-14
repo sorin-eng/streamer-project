@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { isMockMode } from '@/data/dataMode';
 
 export const NotificationBell = () => {
   const { data: notifications } = useNotifications();
@@ -20,6 +21,8 @@ export const NotificationBell = () => {
 
   // Realtime subscription
   useEffect(() => {
+    if (isMockMode()) return;
+
     const channel = supabase
       .channel('notifications-realtime')
       .on('postgres_changes', {
@@ -48,7 +51,7 @@ export const NotificationBell = () => {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative" aria-label="Open notifications">
           <Bell className="h-4.5 w-4.5" />
           {unreadCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground px-1">

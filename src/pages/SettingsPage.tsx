@@ -11,8 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Settings, Wallet, Bell, FileText, Trash2, Lock } from 'lucide-react';
 import { queryDisclaimerAcceptances, deleteDisclaimerAcceptance, updateNotificationPreferences } from '@/lib/supabaseHelpers';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { WebhookSettings } from '@/components/WebhookSettings';
+import { changePassword, getProfileNotificationPreferences } from '@/core/services/platformService';
 
 const CRYPTOS = ['USDT', 'BTC', 'ETH', 'USDC', 'SOL'];
 
@@ -50,17 +50,11 @@ const SettingsPage = () => {
   // Load notification preferences from profiles
   useEffect(() => {
     if (user?.id) {
-      supabase
-        .from('profiles')
-        .select('notification_preferences')
-        .eq('user_id', user.id)
-        .maybeSingle()
-        .then(({ data }: { data: Record<string, unknown> | null }) => {
-          if (data?.notification_preferences) {
-            const prefs = data.notification_preferences as Record<string, boolean>;
-            setEmailNotifications(prefs.email !== false);
-          }
-        });
+      getProfileNotificationPreferences(user.id)
+        .then((prefs) => {
+          if (prefs) setEmailNotifications(prefs.email !== false);
+        })
+        .catch(() => {});
     }
   }, [user?.id]);
 
@@ -74,8 +68,9 @@ const SettingsPage = () => {
 
   const handleSavePayment = async () => {
     try {
+      const normalizedWalletAddress = walletAddress.trim();
       await updateProfile.mutateAsync({
-        wallet_address: walletAddress || null,
+        wallet_address: normalizedWalletAddress || null,
         preferred_crypto: preferredCrypto,
       });
       toast({ title: 'Payment settings saved' });
@@ -86,11 +81,15 @@ const SettingsPage = () => {
   };
 
   const handleToggleEmailNotifications = async (checked: boolean) => {
+    const previous = emailNotifications;
     setEmailNotifications(checked);
     try {
       await updateNotificationPreferences(user!.id, { email: checked });
-    } catch {
-      // silent
+      toast({ title: checked ? 'Email notifications enabled' : 'Email notifications disabled' });
+    } catch (err: unknown) {
+      setEmailNotifications(previous);
+      const message = err instanceof Error ? err.message : 'Could not update notification preferences';
+      toast({ title: 'Failed to update notifications', description: message, variant: 'destructive' });
     }
   };
 
@@ -105,8 +104,7 @@ const SettingsPage = () => {
     }
     setChangingPassword(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
+      await changePassword(user!.id, newPassword);
       setNewPassword('');
       setConfirmPassword('');
       toast({ title: 'Password updated successfully' });
@@ -137,7 +135,12 @@ const SettingsPage = () => {
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Settings className="h-6 w-6" /> Settings
           </h1>
-          <p className="text-sm text-muted-foreground">Manage your account preferences</p>
+          <p className="text-sm text-muted-foreground">Keep the boring but important stuff in order so deals and payouts do not stall.</p>
+        </div>
+
+        <div className="rounded-xl border border-primary/20 bg-primary/[0.04] p-4 shadow-card space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">MVP settings only</p>
+          <p className="text-sm text-muted-foreground">If a setting does not help a deal close, a contract get signed, or a payout land, it can wait.</p>
         </div>
 
         {/* Password Change */}
@@ -147,12 +150,12 @@ const SettingsPage = () => {
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>New Password</Label>
-              <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min 8 characters" />
+              <Label htmlFor="settings-new-password">New Password</Label>
+              <Input id="settings-new-password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min 8 characters" />
             </div>
             <div className="space-y-2">
-              <Label>Confirm Password</Label>
-              <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter password" />
+              <Label htmlFor="settings-confirm-password">Confirm Password</Label>
+              <Input id="settings-confirm-password" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter password" />
             </div>
           </div>
           <Button onClick={handleChangePassword} disabled={changingPassword || !newPassword} variant="outline">
@@ -163,13 +166,16 @@ const SettingsPage = () => {
         {/* Payment Settings */}
         {user?.role === 'streamer' && (
           <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-4">
-            <h2 className="font-semibold flex items-center gap-2">
-              <Wallet className="h-4 w-4" /> Payment Settings
-            </h2>
+            <div>
+              <h2 className="font-semibold flex items-center gap-2">
+                <Wallet className="h-4 w-4" /> Payout Setup
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">Save the wallet details needed to get paid after reports are approved.</p>
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Wallet Address</Label>
-                <Input value={walletAddress} onChange={e => setWalletAddress(e.target.value)} placeholder="0x... or bc1..." />
+                <Label htmlFor="settings-wallet-address">Wallet Address</Label>
+                <Input id="settings-wallet-address" value={walletAddress} onChange={e => setWalletAddress(e.target.value)} placeholder="0x... or bc1..." />
               </div>
               <div className="space-y-2">
                 <Label>Preferred Crypto</Label>
@@ -184,20 +190,23 @@ const SettingsPage = () => {
               </div>
             </div>
             <Button className="bg-gradient-brand hover:opacity-90" onClick={handleSavePayment} disabled={updateProfile.isPending}>
-              Save Payment Settings
+              Save Payout Setup
             </Button>
           </div>
         )}
 
         {/* Notification Preferences */}
         <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-4">
-          <h2 className="font-semibold flex items-center gap-2">
-            <Bell className="h-4 w-4" /> Notifications
-          </h2>
+          <div>
+            <h2 className="font-semibold flex items-center gap-2">
+              <Bell className="h-4 w-4" /> Deal Alerts
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">Only the alerts that help you respond, sign, and get paid.</p>
+          </div>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Email Notifications</p>
-              <p className="text-xs text-muted-foreground">Receive deal updates and messages via email</p>
+              <p className="text-xs text-muted-foreground">Receive deal, contract, and payout updates via email</p>
             </div>
             <Switch checked={emailNotifications} onCheckedChange={handleToggleEmailNotifications} />
           </div>
@@ -211,7 +220,15 @@ const SettingsPage = () => {
         </div>
 
         {/* Webhook Settings - Casino managers only */}
-        {user?.role === 'casino_manager' && <WebhookSettings />}
+        {user?.role === 'casino_manager' && (
+          <div className="space-y-3">
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4">
+              <p className="text-sm font-medium">Optional automation</p>
+              <p className="text-sm text-muted-foreground">Webhook endpoints are only for casinos wiring Castreamino into their own back office. Core MVP flow does not depend on this.</p>
+            </div>
+            <WebhookSettings />
+          </div>
+        )}
 
         {/* Disclaimer Acceptances */}
         <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-4">

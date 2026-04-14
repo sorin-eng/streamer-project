@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Radio, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { getAuthService } from '@/core/services/registry';
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
@@ -16,11 +16,9 @@ const ForgotPasswordPage = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    const result = await getAuthService().requestPasswordReset(email, `${window.location.origin}/reset-password`);
     setLoading(false);
-    if (error) setError(error.message);
+    if (!result.ok) setError(result.error || 'Failed to send reset link');
     else setSent(true);
   };
 

@@ -48,6 +48,16 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
   ];
 
   const progress = ((step + 1) / steps.length) * 100;
+  const canGoNext =
+    step === 0 ? selectedPlatforms.length > 0 :
+    step === 1 ? Boolean(stats.bio.trim() || stats.follower_count || stats.avg_live_viewers) :
+    true;
+
+  const checklist = [
+    { label: 'Pick at least one platform', done: selectedPlatforms.length > 0 },
+    { label: 'Add a short bio or stats', done: Boolean(stats.bio.trim() || stats.follower_count || stats.avg_live_viewers) },
+    { label: 'Optional: create your first listing', done: Boolean(listing.title.trim()) },
+  ];
 
   const handleFinish = async () => {
     setSaving(true);
@@ -112,6 +122,20 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
 
         {/* Content */}
         <div className="p-6 space-y-4 min-h-[300px]">
+          <div className="rounded-lg border border-border bg-muted/40 p-3">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Launch checklist</p>
+            <div className="space-y-1.5">
+              {checklist.map((item) => (
+                <div key={item.label} className="flex items-center gap-2 text-xs">
+                  <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full ${item.done ? 'bg-primary text-primary-foreground' : 'bg-background border border-border text-muted-foreground'}`}>
+                    {item.done ? <Check className="h-3 w-3" /> : '•'}
+                  </span>
+                  <span className={item.done ? 'text-foreground' : 'text-muted-foreground'}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {step === 0 && (
             <>
               <h3 className="font-semibold text-lg">Where do you stream?</h3>
@@ -217,7 +241,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
             )}
           </div>
           {step < 2 ? (
-            <Button className="bg-gradient-brand hover:opacity-90" onClick={() => setStep(s => s + 1)}>
+            <Button className="bg-gradient-brand hover:opacity-90" onClick={() => setStep(s => s + 1)} disabled={!canGoNext}>
               Next <ArrowRight className="ml-1 h-3.5 w-3.5" />
             </Button>
           ) : (
