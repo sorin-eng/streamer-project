@@ -1,6 +1,6 @@
 # Streamer Project Checklist
 
-_Last verified: April 14, 2026_
+_Last verified: April 15, 2026_
 
 ## How to use this file
 This is the only project status tracker.
@@ -15,6 +15,11 @@ Do not create separate status or progress docs again.
 ## Current rule
 Finish the product in mock/local mode before doing live Supabase, payments, email, webhooks, or analytics work.
 Live integration findings below are parked until the local product is truly ready.
+
+## Current product thesis
+This product must become the post-intro operating system for casino ↔ streamer partnerships.
+Discovery is only the front door.
+The moat should come from deal-room workflow, approvals, reporting, payouts, trust history, and renewals.
 
 ## Daily execution packs
 Treat the long-term plan as day-sized work packets.
@@ -47,8 +52,8 @@ Focus: make the product feel like one real casino ↔ streamer workflow instead 
 - [x] Make contract creation and signing advance the workflow automatically instead of relying on manual state babysitting
 - [x] Add stronger handoff actions between active deals, contract signing, messages, and reports
 - [x] Decide which non-core pages/features stay in v1 and which get deferred
-  - Keep `Deal Messages`, `Campaign Intake` / `Optional Campaigns`, `Profile`, and `Settings` in v1 as supporting tools, not primary workflow steps
-  - Keep contracts and reports limited to deal states where those actions actually make sense
+  - [x] Keep `Deal Messages`, `Campaign Intake` / `Optional Campaigns`, `Profile`, and `Settings` in v1 as supporting tools, not primary workflow steps
+  - [x] Keep contracts and reports limited to deal states where those actions actually make sense
 - [x] Run one more ruthless pass on any remaining non-core route actions that still distract from the MVP path
 
 Day-close proof:
@@ -89,8 +94,64 @@ Day-close proof:
 - `npm test` ✅ (`86/86` passing on April 14, 2026)
 - `npm run build` ✅ (passed on April 14, 2026)
 
-### Day 4, reopen live backend safely
-Focus: move from mock-complete MVP to real backend behavior without breaking the clean local product.
+### Day 4, build the deal-room spine
+Focus: make an ongoing partnership easier to manage on-platform than off-platform.
+
+- [x] Create a unified deal-room view that anchors inquiry, negotiation, contract, messages, reports, and payout state in one place
+- [x] Add a timeline / milestone view that shows what happened, what is blocked, and who owns the next step
+- [x] Add operator-only notes, internal status, and risk flags without leaking them to the wrong role
+- [x] Add stronger in-context handoffs so users stop page-hopping to continue the same partnership
+- [x] Prove the deal-room flow works for both casino-manager and streamer roles in mock mode
+
+Day-close proof:
+- `npm test` ✅ (`88/88` passing on April 15, 2026)
+- `npm run build` ✅ (passed on April 15, 2026)
+- one mock partnership can be followed from inquiry to active without losing context ✅
+
+### Day 5, add promo asset approval + delivery proof
+Focus: keep compliance-sensitive promo work inside the deal instead of in DMs and hope.
+
+- [x] Add creative brief / promo requirements to each deal
+- [x] Add asset submission states for copy, links, and media where relevant
+- [x] Add approve / reject / revise workflow for promo assets
+- [x] Add required disclaimer / compliance checklist tied to each deal
+- [x] Add delivery-proof capture for live posts/streams and prove it feeds the deal record cleanly
+
+Day-close proof:
+- `npm test` ✅ (89/89 passed on April 15, 2026)
+- `npm run build` ✅ (passed on April 15, 2026)
+- one mock deal can move from brief → submitted assets → approved assets → live proof ✅ (`src/test/dealRoomWorkflow.test.ts`)
+
+### Day 6, add payout ledger + reconciliation
+Focus: make money status legible enough that both sides prefer the platform over side-channel confusion.
+
+- [ ] Add expected / approved / pending / paid payout states and dates
+- [ ] Keep payment method / wallet instructions visible where they are operationally needed
+- [ ] Link report uploads and commission rows to payout summaries instead of leaving them as disconnected artifacts
+- [ ] Add mismatch / overdue / missing-approval flags where payout state looks suspicious
+- [ ] Prove both casino-manager and streamer see role-appropriate payout status in mock mode
+
+Day-close proof:
+- `npm test`
+- `npm run build`
+- one mock partnership can move from report upload to commission visibility to payout-state tracking without ambiguity
+
+### Day 7, add trust/history + repeat-deal mechanics
+Focus: make the second deal faster and safer on-platform than off-platform.
+
+- [ ] Add partner history surfaces such as completed deals, disputes, response behavior, and payout reliability
+- [ ] Add operator-only trust notes plus geo/compliance memory that compound over time
+- [ ] Add a repeat-deal / duplicate-deal action that prefills prior successful terms
+- [ ] Add renewal / reactivation cues for successful partnerships
+- [ ] Prove the second-deal setup is meaningfully faster on-platform than the first-deal setup in mock mode
+
+Day-close proof:
+- `npm test`
+- `npm run build`
+- one successful mock partnership can be renewed into a second deal with less friction than starting cold
+
+### Day 8, reopen live backend safely
+Focus: move from mock-complete product to real backend behavior without breaking the clean local product.
 
 - [ ] Apply and verify the `organization_members` RLS recursion fix for live casino auth
 - [ ] Fix and verify live browse-streamers query / relationship behavior
@@ -105,14 +166,15 @@ Day-close proof:
 - `VITE_DATA_MODE=supabase npm run build`
 - live role smoke test notes captured in this checklist
 
-### Day 5, make the live workflow transact like a real product
+### Day 9, make the live workflow transact like a real product
 Focus: convert the core workflow from local proof into a functioning live SaaS path.
 
 - [ ] Prove live browse → inquiry/application → deal creation works
 - [ ] Prove live contract generation/signing state changes work
+- [ ] Prove live asset approval / delivery proof path works
 - [ ] Prove live performance report upload path works
 - [ ] Prove live commission computation / visibility works
-- [ ] Prove notifications / unread state behave intentionally in live mode
+- [ ] Prove live payout-status visibility works
 - [ ] Decide whether webhooks ship in v1 or stay hidden until hardened
 - [ ] If webhooks ship, prove live webhook creation, delivery logging, and failure behavior
 
@@ -121,7 +183,7 @@ Day-close proof:
 - `npm run build`
 - end-to-end live workflow smoke from one casino path and one streamer path
 
-### Day 6, commercial and compliance readiness
+### Day 10, commercial and compliance readiness
 Focus: make the app trustworthy enough to operate as a real SaaS, not just a functioning demo.
 
 - [ ] Finalize age-gating and jurisdiction behavior for gambling context
@@ -130,14 +192,14 @@ Focus: make the app trustworthy enough to operate as a real SaaS, not just a fun
 - [ ] Add/verify admin audit visibility for sensitive actions
 - [ ] Add baseline product analytics / key funnel visibility
 - [ ] Add error monitoring / operational logging path
-- [ ] Write the minimum operator SOP for support, moderation, and incident recovery
+- [ ] Write the minimum operator SOP for support, moderation, payout issues, and incident recovery
 
 Day-close proof:
 - `npm test`
 - `npm run build`
 - production-readiness checklist reviewed against actual app behavior
 
-### Day 7, deployment and launch readiness
+### Day 11, deployment and launch readiness
 Focus: finish the boring but critical SaaS work so launch does not become a clown show.
 
 - [ ] Final deployment target decided and configured
@@ -207,7 +269,7 @@ Day-close proof:
 - [x] Improve mock-mode dev ergonomics outside the test harness
 - [x] Remove or contain out-of-phase live assumptions where they still leak into UX
 
-## Phase 3, MVP product surface
+## Phase 3, core workflow MVP
 ### Surfaces already present
 - [x] Landing page
 - [x] Signup / login flow
@@ -224,14 +286,21 @@ Day-close proof:
 - [x] Deals overview cards, priority queue, and workflow progress
 - [x] Onboarding checklist and stronger step gating
 - [x] Profile completeness CTA improvements
-
-### MVP tightening still open
-- [ ] Reduce the product to one clean core workflow: browse → inquiry/application → deal → contract → report → commission
-- [ ] Remove fake-feeling or low-value surface area that distracts from MVP
-- [ ] Make each step in the core workflow feel complete in mock/local mode
+- [x] Reduce the product to one clean core workflow: browse → inquiry/application → deal → contract → report → commission
+- [x] Remove fake-feeling or low-value surface area that distracts from MVP
+- [x] Make each step in the core workflow feel intentional in mock/local mode
 - [x] Decide which non-core pages/features stay in v1 and which get deferred
 
-## Phase 4, hardening
+## Phase 4, sticky partnership operating system
+### Still open
+- [x] Add a unified deal room / timeline for each partnership
+- [x] Add promo asset approval workflow tied to the deal
+- [ ] Add payout ledger + reconciliation states
+- [ ] Add trust / history / dispute memory that compounds over time
+- [ ] Add repeat-deal / renewal flow for successful partnerships
+- [ ] Prove the second-deal path is easier on-platform than off-platform in mock mode
+
+## Phase 5, hardening
 ### Already started
 - [x] Add initial compliance-related surfaces/hooks
 - [x] Fix age-verification birthday edge case so users are not rounded up to legal age before their birthday
@@ -240,17 +309,60 @@ Day-close proof:
 - [x] Split chart wrappers into lazy per-chart implementations
 - [x] Reduce main entry bundle to about `87.8 KB raw / 25.2 KB gzip`
 - [x] Remove the old `>500 KB` Vite warning
-
-### Still open
 - [x] Deep-proof age-gating behavior
 - [x] Review and prove jurisdiction/compliance rules for gambling context
 - [x] Add end-to-end coverage for the main workflow
 - [x] Run ugly edge-case pass across auth, deals, contracts, reports, and settings
 - [x] Run final pre-live QA pass
 
+### Still open
+- [ ] Hard-proof the new sticky workflow surfaces after they land (deal room, assets, payouts, trust, renewals)
+- [ ] Prove permissions and visibility boundaries for operator-only notes and trust data
+- [ ] Re-run cross-role end-to-end journeys after the sticky layer lands
+
+## Phase 6, live backend activation
+### Still open
+- [ ] Apply and verify the `organization_members` RLS recursion fix for live casino auth
+- [ ] Fix and verify live browse-streamers query / relationship behavior
+- [ ] Prove live streamer signup → login → profile → listing path
+- [ ] Prove live casino-manager signup/login resolves organization context correctly
+- [ ] Prove live dashboard/read models load intentionally for all main roles
+- [ ] Keep mock mode behavior intact while live mode is repaired
+
+## Phase 7, live workflow completion
+### Still open
+- [ ] Prove live browse → inquiry/application → deal creation works
+- [ ] Prove live contract generation/signing state changes work
+- [ ] Prove live asset approval / delivery proof path works
+- [ ] Prove live performance report upload path works
+- [ ] Prove live commission computation / visibility works
+- [ ] Prove live payout-status visibility works
+- [ ] Decide whether webhooks ship in v1 or stay hidden until hardened
+- [ ] If webhooks ship, prove live webhook creation, delivery logging, and failure behavior
+
+## Phase 8, SaaS readiness
+### Still open
+- [ ] Finalize age-gating and jurisdiction behavior for gambling context
+- [ ] Remove or lock down any dev/compliance bypass that must not survive production
+- [ ] Decide and implement the real payout/payment approach for v1
+- [ ] Add/verify admin audit visibility for sensitive actions
+- [ ] Add baseline product analytics / key funnel visibility
+- [ ] Add error monitoring / operational logging path
+- [ ] Write the minimum operator SOP for support, moderation, payout issues, and incident recovery
+
+## Phase 9, deployment and launch readiness
+### Still open
+- [ ] Final deployment target decided and configured
+- [ ] Environment variables, secrets, and callback URLs verified
+- [ ] Database migrations and rollback plan verified
+- [ ] Domain / auth redirect / storage / email / webhook URLs verified
+- [ ] Backup / restore / basic recovery path documented
+- [ ] Final cross-role QA pass completed in the deployed environment
+- [ ] Launch checklist written for first pilot customers
+
 ## Parked live integration findings
 These are useful, but they are **not the next step**.
-Resume them only after the mock/local gates above are satisfied.
+Resume them only after the mock/local gates and sticky-layer gates above are satisfied.
 
 - [x] Confirm `VITE_DATA_MODE=supabase npm run build` passes
 - [x] Confirm read-only Supabase probe works
@@ -262,11 +374,12 @@ Resume them only after the mock/local gates above are satisfied.
 - [x] Prepare clearer live error surfacing in campaign/streamer pages
 
 ## Current next moves
-1. Finish **Day 2** completely.
-2. Then finish **Day 3** completely.
-3. Then finish **Day 4** through **Day 7** to get to full SaaS completion.
+1. Finish **Day 5** completely.
+2. Then finish **Day 6** completely.
+3. Then finish **Day 7** completely.
+4. Only then reopen live backend work in **Day 8** through **Day 11**.
 
 ## Last verification snapshot
-- `npm test` ✅ (`9` files, `55` tests passed on April 14, 2026)
-- `npm run build` ✅
-- `VITE_DATA_MODE=supabase npm run build` ✅ (diagnostic only, out of sequence)
+- `npm test` ✅ (`13` files, `88` tests passed on April 15, 2026)
+- `npm run build` ✅ (passed on April 15, 2026 after rollback to `d3bd771`)
+- `VITE_DATA_MODE=supabase npm run build` ✅ (diagnostic only, from April 14, 2026)

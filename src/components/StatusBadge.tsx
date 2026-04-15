@@ -23,6 +23,7 @@ const statusStyles: Record<string, string> = {
   pending_signature: 'bg-warning/10 text-warning border-warning/20',
   signed: 'bg-success/10 text-success border-success/20',
   expired: 'bg-muted text-muted-foreground border-border',
+  needs_revision: 'bg-warning/10 text-warning border-warning/20',
 };
 
 const dealTypeLabels: Record<string, string> = {

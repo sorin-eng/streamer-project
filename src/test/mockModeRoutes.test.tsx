@@ -61,7 +61,7 @@ const casinoUser: AppUser = {
 };
 
 const streamerUser: AppUser = {
-  id: 'mock-streamer-user',
+  id: 'streamer-1',
   email: 'streamer@example.com',
   role: 'streamer',
   displayName: 'Mock Streamer',
@@ -212,6 +212,43 @@ describe('mock-mode route and role flows', () => {
       expect(screen.getByText('Only deals in negotiation, signature, or live delivery stages belong here.')).toBeInTheDocument();
       expect(screen.getByText('Spring slots push')).toBeInTheDocument();
       expect(screen.getByText('Direct deal')).toBeInTheDocument();
+    });
+  });
+
+  it('shows the casino deal room spine in mock mode without losing operator context', async () => {
+    setMockUser(casinoUser);
+    setRoute('/deals?deal=deal-1');
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Deals' })).toBeInTheDocument();
+      expect(screen.getByText('Deal room')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Timeline' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Creative brief' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Promo asset approvals' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Compliance checklist' })).toBeInTheDocument();
+      expect(screen.getByText('Operator view only')).toBeInTheDocument();
+      expect(screen.getByText('Internal status and risk flags')).toBeInTheDocument();
+      expect(screen.getAllByRole('button', { name: 'View Contract' }).length).toBeGreaterThan(0);
+    });
+  });
+
+  it('shows the streamer deal room without leaking operator-only notes', async () => {
+    setMockUser(streamerUser);
+    setRoute('/deals?deal=deal-1');
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Deals' })).toBeInTheDocument();
+      expect(screen.getByText('Deal room')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Timeline' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Creative brief' })).toBeInTheDocument();
+      expect(screen.getByText('Required disclaimers')).toBeInTheDocument();
+      expect(screen.getByText('Shared room view')).toBeInTheDocument();
+      expect(screen.queryByText('Operator view only')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument();
     });
   });
 

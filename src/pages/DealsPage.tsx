@@ -1,16 +1,17 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { StatusBadge } from '@/components/StatusBadge';
-import { useDeals, useApplications, useUpdateApplicationStatus, useRespondToInquiry, useCreateReview, useAcceptApplicationToDeal, useAdvanceDealState, useCancelDeal, useDisputeDeal } from '@/hooks/useSupabaseData';
+import { useDeals, useApplications, useUpdateApplicationStatus, useRespondToInquiry, useCreateReview, useAcceptApplicationToDeal, useAdvanceDealState, useCancelDeal, useDisputeDeal, useContracts, useDealMessages, useCommissions, useReportUploads } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
-import { Handshake, DollarSign, Calendar, ArrowRight, CheckCircle2, XCircle, FileText, Ban, AlertTriangle, Star, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Handshake, DollarSign, Calendar, ArrowRight, CheckCircle2, XCircle, FileText, Ban, AlertTriangle, Star, ThumbsUp, ThumbsDown, MessageSquare, ClipboardList, Link2, ImageIcon, ShieldCheck, Send } from 'lucide-react';
 import { EmptyState } from '@/components/EmptyState';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { SearchBar, PaginationControls } from '@/components/SearchPagination';
 import { ContractBuilder } from '@/components/ContractBuilder';
 import { StarRating } from '@/components/StarRating';
@@ -18,6 +19,8 @@ import type { DealWithRelations, ApplicationWithProfile } from '@/types/supabase
 import { useQueryClient } from '@tanstack/react-query';
 import { DealsSkeleton } from '@/components/PageSkeletons';
 import { DashboardChartCard } from '@/components/dashboard/DashboardCharts';
+import type { DealRoomWorkflow, DealRoomPromoAsset } from '@/lib/mockDealRoomWorkflow';
+import { addDealRoomProof, getDealRoomWorkflowSeed, loadDealRoomWorkflowState, reviewDealRoomAsset, saveDealRoomWorkflowState, submitDealRoomAsset, toggleDealRoomCompliance } from '@/lib/mockDealRoomWorkflow';
 
 const PAGE_SIZE = 20;
 
@@ -46,10 +49,144 @@ function getDealStageMeta(state: DealWithRelations['state']) {
   };
 }
 
+type DealRoomMilestoneStatus = 'done' | 'current' | 'upcoming' | 'blocked';
+
+interface DealRoomMilestone {
+  key: string;
+  label: string;
+  helper: string;
+  owner: string;
+  status: DealRoomMilestoneStatus;
+}
+
+const DEAL_ROOM_OPERATOR_PLAYBOOK: Record<string, { internalStatus: string; notes: string[] }> = {
+  'deal-1': {
+    internalStatus: 'Negotiation is live. Keep the partner in the room and turn verbal alignment into signed terms fast.',
+    notes: [
+      'Confirm clip approval turnaround before the contract draft goes out.',
+      'Use the room as the source of truth instead of letting approvals drift into side chats.',
+    ],
+  },
+  'deal-2': {
+    internalStatus: 'Delivery is already underway. Reporting and payout visibility are the next trust anchors.',
+    notes: [
+      'Collect live proof and report inputs here before payout conversations start drifting.',
+      'If this one lands cleanly, convert it into the template for the next repeat deal.',
+    ],
+  },
+};
+
+function buildDealRoomMilestones(deal: DealWithRelations): DealRoomMilestone[] {
+  const state = deal.state;
+  const base: DealRoomMilestone[] = [
+    {
+      key: 'inquiry',
+      label: 'Inquiry logged',
+      helper: 'The first outreach stays attached to the partnership record.',
+      owner: 'Casino manager',
+      status: 'done',
+    },
+    {
+      key: 'negotiation',
+      label: 'Negotiation in room',
+      helper: 'Terms, concerns, and next steps should stay inside the platform.',
+      owner: 'Both sides',
+      status: state === 'inquiry' ? 'current' : DEAL_STAGE_ORDER.includes(state) && DEAL_STAGE_ORDER.indexOf(state) > 0 ? 'done' : 'upcoming',
+    },
+    {
+      key: 'contract_pending',
+      label: 'Contract and signatures',
+      helper: 'The agreement gets drafted, reviewed, and signed here.',
+      owner: 'Both sides',
+      status: state === 'contract_pending' ? 'current' : DEAL_STAGE_ORDER.includes(state) && DEAL_STAGE_ORDER.indexOf(state) > 2 ? 'done' : 'upcoming',
+    },
+    {
+      key: 'active',
+      label: 'Live delivery and reports',
+      helper: 'Execution and proof should be visible before payout talk starts.',
+      owner: 'Casino manager',
+      status: state === 'active' ? 'current' : state === 'completed' ? 'done' : 'upcoming',
+    },
+    {
+      key: 'completed',
+      label: 'Payout and closeout',
+      helper: 'Commissions, payout state, and renewal decisions stay legible.',
+      owner: 'Casino manager',
+      status: state === 'completed' ? 'current' : 'upcoming',
+    },
+  ];
+
+  if (state === 'cancelled') {
+    return base.map((item, index) => ({
+      ...item,
+      status: index < 2 ? 'done' : index === 2 ? 'blocked' : 'upcoming',
+    }));
+  }
+
+  if (state === 'disputed') {
+    return base.map((item, index) => ({
+      ...item,
+      status: index < 3 ? 'done' : index === 3 ? 'blocked' : 'upcoming',
+    }));
+  }
+
+  return base.map((item) => {
+    if (item.key === state) return { ...item, status: 'current' };
+    return item;
+  });
+}
+
+function getDealRoomNextOwner(deal: DealWithRelations) {
+  switch (deal.state) {
+    case 'inquiry':
+      return 'Streamer response needed';
+    case 'negotiation':
+      return 'Casino manager should draft terms';
+    case 'contract_pending':
+      return 'Both sides need signatures';
+    case 'active':
+      return 'Casino manager should collect proof and report data';
+    case 'completed':
+      return 'Operator should close payout and tee up renewal';
+    case 'disputed':
+      return 'Operator intervention needed';
+    case 'cancelled':
+      return 'No action, closed';
+    default:
+      return 'Keep the room current';
+  }
+}
+
+function getDealRoomRiskFlags(deal: DealWithRelations, hasContract: boolean, hasCommissions: boolean) {
+  const riskFlags: string[] = [];
+
+  if (deal.state === 'inquiry') riskFlags.push('No committed terms yet, easy to lose off-platform.');
+  if (deal.state === 'negotiation' && !hasContract) riskFlags.push('Contract draft still missing.');
+  if (deal.state === 'contract_pending') riskFlags.push('Waiting on signatures before the deal can go live.');
+  if ((deal.state === 'active' || deal.state === 'completed') && !hasCommissions) riskFlags.push('No payout rows logged yet.');
+  if (deal.state === 'disputed') riskFlags.push('Dispute is open and needs operator review.');
+
+  return riskFlags;
+}
+
+function getAssetOwnerLabel(owner: DealRoomPromoAsset['owner']) {
+  if (owner === 'casino_manager') return 'Casino manager';
+  if (owner === 'streamer') return 'Streamer';
+  return 'Both sides';
+}
+
+function getAssetFieldLabel(kind: DealRoomPromoAsset['kind']) {
+  if (kind === 'copy') return 'Copy draft';
+  if (kind === 'link') return 'Tracking link';
+  return 'Media preview';
+}
+
 const DealsPage = () => {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: deals, isLoading } = useDeals();
   const { data: applications } = useApplications();
+  const requestedDealId = searchParams.get('deal');
   const updateAppStatus = useUpdateApplicationStatus();
   const respondToInquiry = useRespondToInquiry();
   const createReview = useCreateReview();
@@ -57,11 +194,14 @@ const DealsPage = () => {
   const advanceDealState = useAdvanceDealState();
   const cancelDealMutation = useCancelDeal();
   const disputeDealMutation = useDisputeDeal();
+  const { data: commissions } = useCommissions();
+  const { data: reportUploads } = useReportUploads();
   const { toast } = useToast();
   const [transitioning, setTransitioning] = useState<string | null>(null);
   const [showApps, setShowApps] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
+  const [selectedDealId, setSelectedDealId] = useState<string | null>(requestedDealId);
   const [contractDeal, setContractDeal] = useState<DealWithRelations | null>(null);
   const [cancelDeal, setCancelDeal] = useState<DealWithRelations | null>(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -72,6 +212,11 @@ const DealsPage = () => {
   const [reviewDeal, setReviewDeal] = useState<DealWithRelations | null>(null);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
+  const [dealRoomWorkflows, setDealRoomWorkflows] = useState<Record<string, DealRoomWorkflow>>(() => loadDealRoomWorkflowState());
+  const [assetDrafts, setAssetDrafts] = useState<Record<string, string>>({});
+  const [proofLabel, setProofLabel] = useState('');
+  const [proofUrl, setProofUrl] = useState('');
+  const [proofNotes, setProofNotes] = useState('');
 
   type DealFilter = 'all' | 'needs_action' | DealWithRelations['state'];
 
@@ -119,6 +264,187 @@ const DealsPage = () => {
   });
   const totalCount = filtered.length;
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const selectedDeal = useMemo(
+    () => (deals || []).find((deal) => deal.id === selectedDealId) || null,
+    [deals, selectedDealId],
+  );
+  const { data: roomContracts } = useContracts(selectedDeal?.id);
+  const { data: roomMessages } = useDealMessages(selectedDeal?.id || null);
+  const selectedDealCommissions = useMemo(
+    () => (commissions || []).filter((commission) => commission.deal_id === selectedDeal?.id),
+    [commissions, selectedDeal?.id],
+  );
+  const latestRoomMessage = roomMessages?.[roomMessages.length - 1] || null;
+  const latestRoomContract = roomContracts?.[0] || null;
+  const roomMilestones = useMemo(
+    () => (selectedDeal ? buildDealRoomMilestones(selectedDeal) : []),
+    [selectedDeal],
+  );
+  const roomRiskFlags = useMemo(
+    () => selectedDeal ? getDealRoomRiskFlags(selectedDeal, Boolean(latestRoomContract), selectedDealCommissions.length > 0) : [],
+    [selectedDeal, latestRoomContract, selectedDealCommissions.length],
+  );
+  const roomPartnerName = selectedDeal
+    ? (user?.role === 'streamer' ? selectedDeal.organizations?.name : selectedDeal.profiles?.display_name) || 'Partner'
+    : 'Partner';
+  const roomPayoutTotal = selectedDealCommissions.reduce((sum, commission) => sum + Number(commission.amount), 0);
+  const roomPendingPayouts = selectedDealCommissions.filter((commission) => commission.status === 'pending').length;
+  const latestReportUpload = reportUploads?.[0] || null;
+  const operatorPlaybook = selectedDeal
+    ? DEAL_ROOM_OPERATOR_PLAYBOOK[selectedDeal.id] || {
+        internalStatus: getDealRoomNextOwner(selectedDeal),
+        notes: ['Keep the deal room updated so approvals, proof, and payout context do not leak into side channels.'],
+      }
+    : null;
+  const selectedDealWorkflow = useMemo(
+    () => (selectedDeal ? dealRoomWorkflows[selectedDeal.id] || getDealRoomWorkflowSeed(selectedDeal.id) : null),
+    [dealRoomWorkflows, selectedDeal],
+  );
+  const selectedAssets = selectedDealWorkflow?.assets || [];
+  const selectedProofs = selectedDealWorkflow?.proofs || [];
+  const approvedAssetCount = selectedAssets.filter((asset) => asset.status === 'approved').length;
+  const pendingAssetCount = selectedAssets.filter((asset) => asset.status === 'pending' || asset.status === 'needs_revision').length;
+  const complianceChecklist = useMemo(() => {
+    if (!selectedDealWorkflow) return [];
+
+    const copyApproved = selectedAssets.find((asset) => asset.kind === 'copy')?.status === 'approved';
+    const linkApproved = selectedAssets.find((asset) => asset.kind === 'link')?.status === 'approved';
+    const proofCaptured = selectedProofs.length > 0;
+
+    return selectedDealWorkflow.compliance.map((item) => {
+      if (item.id === 'copy-approved') return { ...item, complete: copyApproved };
+      if (item.id === 'link-approved') return { ...item, complete: linkApproved };
+      if (item.id === 'proof-captured') return { ...item, complete: proofCaptured };
+      return item;
+    });
+  }, [selectedAssets, selectedDealWorkflow, selectedProofs.length]);
+  const incompleteComplianceCount = complianceChecklist.filter((item) => !item.complete).length;
+  const workflowRiskFlags = useMemo(() => {
+    if (!selectedDeal) return [];
+
+    const flags: string[] = [];
+    if (pendingAssetCount > 0) flags.push('Promo assets are still waiting on approval or revision.');
+    if (incompleteComplianceCount > 0) flags.push('Compliance checklist is still incomplete.');
+    if ((selectedDeal.state === 'active' || selectedDeal.state === 'completed') && selectedProofs.length === 0) {
+      flags.push('Live delivery proof has not been captured yet.');
+    }
+    return flags;
+  }, [incompleteComplianceCount, pendingAssetCount, selectedDeal, selectedProofs.length]);
+  const allRiskFlags = [...roomRiskFlags, ...workflowRiskFlags];
+
+  useEffect(() => {
+    if (requestedDealId && requestedDealId !== selectedDealId) {
+      setSelectedDealId(requestedDealId);
+    }
+  }, [requestedDealId, selectedDealId]);
+
+  useEffect(() => {
+    if (!deals?.length) {
+      setSelectedDealId(null);
+      return;
+    }
+
+    if (selectedDealId && deals.some((deal) => deal.id === selectedDealId)) {
+      return;
+    }
+
+    const fallbackDealId = requestedDealId && deals.some((deal) => deal.id === requestedDealId)
+      ? requestedDealId
+      : urgentDeals[0]?.id || deals[0]?.id || null;
+
+    if (fallbackDealId) {
+      setSelectedDealId(fallbackDealId);
+    }
+  }, [deals, requestedDealId, selectedDealId, urgentDeals]);
+
+  useEffect(() => {
+    saveDealRoomWorkflowState(dealRoomWorkflows);
+  }, [dealRoomWorkflows]);
+
+  useEffect(() => {
+    if (!selectedDeal) return;
+    if (dealRoomWorkflows[selectedDeal.id]) return;
+
+    setDealRoomWorkflows((prev) => ({
+      ...prev,
+      [selectedDeal.id]: getDealRoomWorkflowSeed(selectedDeal.id),
+    }));
+  }, [dealRoomWorkflows, selectedDeal]);
+
+  useEffect(() => {
+    setProofLabel('');
+    setProofUrl('');
+    setProofNotes('');
+  }, [selectedDealId]);
+
+  const updateSelectedDealWorkflow = (updater: (current: DealRoomWorkflow) => DealRoomWorkflow) => {
+    if (!selectedDeal) return;
+
+    setDealRoomWorkflows((prev) => {
+      const current = prev[selectedDeal.id] || getDealRoomWorkflowSeed(selectedDeal.id);
+      return {
+        ...prev,
+        [selectedDeal.id]: updater(current),
+      };
+    });
+  };
+
+  const handleSubmitAsset = (asset: DealRoomPromoAsset) => {
+    if (!selectedDeal || !user) return;
+
+    const draftKey = `${selectedDeal.id}:${asset.id}`;
+    const content = (assetDrafts[draftKey] ?? asset.content).trim();
+
+    if (!content) {
+      toast({ title: 'Asset content required', description: `Add ${getAssetFieldLabel(asset.kind).toLowerCase()} content before submitting.`, variant: 'destructive' });
+      return;
+    }
+
+    updateSelectedDealWorkflow((current) => submitDealRoomAsset(current, asset.id, content, user.displayName));
+
+    toast({ title: `${asset.label} submitted`, description: 'The asset now lives in the deal room for review.' });
+  };
+
+  const handleReviewAsset = (asset: DealRoomPromoAsset, nextStatus: 'approved' | 'needs_revision' | 'rejected') => {
+    updateSelectedDealWorkflow((current) => reviewDealRoomAsset(current, asset.id, nextStatus));
+
+    toast({ title: `${asset.label} ${nextStatus === 'needs_revision' ? 'sent back for revision' : nextStatus}` });
+  };
+
+  const handleToggleCompliance = (itemId: string) => {
+    updateSelectedDealWorkflow((current) => toggleDealRoomCompliance(current, itemId));
+  };
+
+  const handleAddProof = () => {
+    if (!selectedDeal || !user) return;
+    if (!(selectedDeal.state === 'active' || selectedDeal.state === 'completed')) {
+      toast({ title: 'Proof is locked', description: 'Delivery proof only opens once the deal is live.', variant: 'destructive' });
+      return;
+    }
+    if (!proofLabel.trim() || !proofUrl.trim()) {
+      toast({ title: 'Proof details required', description: 'Add a placement label and proof URL so the record is useful.', variant: 'destructive' });
+      return;
+    }
+
+    updateSelectedDealWorkflow((current) => addDealRoomProof(current, {
+      label: proofLabel,
+      url: proofUrl,
+      notes: proofNotes,
+      submittedBy: user.displayName,
+    }));
+
+    setProofLabel('');
+    setProofUrl('');
+    setProofNotes('');
+    toast({ title: 'Delivery proof logged', description: 'The live placement now feeds the deal record directly.' });
+  };
+
+  const openDealRoom = (dealId: string) => {
+    setSelectedDealId(dealId);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('deal', dealId);
+    setSearchParams(nextParams, { replace: true });
+  };
 
   const handleAcceptApplication = async (app: ApplicationWithProfile) => {
     try {
@@ -298,6 +624,404 @@ const DealsPage = () => {
           </DashboardChartCard>
         )}
 
+        {selectedDeal && (
+          <section className="rounded-xl border border-primary/20 bg-card p-5 shadow-card space-y-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="space-y-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Deal room</p>
+                <h2 className="text-xl font-semibold">{selectedDeal.campaigns?.title || 'Direct Deal'}</h2>
+                <p className="text-sm text-muted-foreground">
+                  Keep contract, communication, delivery, and payout state in one place for {roomPartnerName}.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <StatusBadge status={selectedDeal.state} />
+                <StatusBadge status={selectedDeal.deal_type} />
+                <Button variant="outline" size="sm" onClick={() => openDealRoom(selectedDeal.id)}>
+                  Room pinned to this deal
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Current stage</p>
+                <p className="font-semibold">{selectedDeal.state.replace('_', ' ')}</p>
+                <p className="text-sm text-muted-foreground">{getDealStageMeta(selectedDeal.state).label}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Next owner</p>
+                <p className="font-semibold">{getDealRoomNextOwner(selectedDeal)}</p>
+                <p className="text-sm text-muted-foreground">Who should move this partnership forward next.</p>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Latest message</p>
+                <p className="font-semibold">{latestRoomMessage?.profiles?.display_name || 'No deal thread yet'}</p>
+                <p className="text-sm text-muted-foreground">
+                  {latestRoomMessage?.content || 'Once the partnership is active in the room, the latest message will show here.'}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Payout state</p>
+                <p className="font-semibold">
+                  {selectedDealCommissions.length > 0 ? `$${roomPayoutTotal.toLocaleString()}` : 'No payout rows yet'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedDealCommissions.length > 0
+                    ? `${roomPendingPayouts} pending commission${roomPendingPayouts === 1 ? '' : 's'} in this room.`
+                    : selectedDeal.state === 'active' || selectedDeal.state === 'completed'
+                      ? 'Reports can now turn into commissions and payout tracking.'
+                      : 'Payout tracking starts once the deal is live and reported.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+              <div className="space-y-4">
+                <div className="rounded-lg border border-border p-4 space-y-4">
+                  <div>
+                    <h3 className="font-semibold">Timeline</h3>
+                    <p className="text-sm text-muted-foreground">See what happened, what is blocked, and who owns the next move.</p>
+                  </div>
+                  <div className="space-y-3">
+                    {roomMilestones.map((milestone) => {
+                      const icon = milestone.status === 'done'
+                        ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        : milestone.status === 'current'
+                          ? <ArrowRight className="h-4 w-4 text-primary" />
+                          : milestone.status === 'blocked'
+                            ? <AlertTriangle className="h-4 w-4 text-warning" />
+                            : <Calendar className="h-4 w-4 text-muted-foreground" />;
+
+                      return (
+                        <div key={milestone.key} className="flex gap-3 rounded-lg border border-border bg-muted/20 p-3">
+                          <div className="mt-0.5">{icon}</div>
+                          <div className="space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-medium">{milestone.label}</p>
+                              <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{milestone.status}</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{milestone.helper}</p>
+                            <p className="text-xs text-muted-foreground">Owner: {milestone.owner}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-border p-4 space-y-3">
+                  <div>
+                    <h3 className="font-semibold">Execution snapshot</h3>
+                    <p className="text-sm text-muted-foreground">Contract, promo approvals, proof, and payout clues that keep the room useful after the intro.</p>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-1">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Contract</p>
+                      <p className="font-medium">{latestRoomContract ? latestRoomContract.status.replace('_', ' ') : 'Not drafted yet'}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {latestRoomContract ? `Created ${new Date(latestRoomContract.created_at).toLocaleDateString()}` : 'Draft terms here before the partnership drifts into off-platform chaos.'}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-1">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Promo assets</p>
+                      <p className="font-medium">{approvedAssetCount} approved, {pendingAssetCount} waiting</p>
+                      <p className="text-sm text-muted-foreground">
+                        Keep copy, links, and media approvals attached here before anything goes live.
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-1">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Proof</p>
+                      <p className="font-medium">
+                        {selectedProofs.length > 0 ? `${selectedProofs.length} proof item${selectedProofs.length === 1 ? '' : 's'} logged` : selectedDeal.state === 'active' || selectedDeal.state === 'completed' ? 'Ready for delivery proof' : 'Locked until live'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedProofs.length > 0
+                          ? `Latest proof captured ${new Date(selectedProofs[0].createdAt).toLocaleDateString()}`
+                          : latestReportUpload && isCasino
+                            ? `Latest org upload: ${new Date(latestReportUpload.created_at).toLocaleDateString()}`
+                            : 'This room should feed cleanly into reporting instead of making people hunt for context.'}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-1">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Messages</p>
+                      <p className="font-medium">{roomMessages?.length || 0} update{roomMessages?.length === 1 ? '' : 's'}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {latestRoomMessage ? 'Latest thread activity stays attached to the deal instead of disappearing into chat fog.' : 'Once the deal thread wakes up, the room becomes the memory.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedDealWorkflow && (
+                  <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+                    <div className="rounded-lg border border-border p-4 space-y-3">
+                      <div>
+                        <h3 className="font-semibold">Creative brief</h3>
+                        <p className="text-sm text-muted-foreground">The promo angle, required talking points, and disclaimers stay attached to this deal.</p>
+                      </div>
+                      <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                        <p className="text-sm font-medium">{selectedDealWorkflow.briefHeadline}</p>
+                        <p className="text-sm text-muted-foreground">{selectedDealWorkflow.campaignAngle}</p>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <ClipboardList className="h-4 w-4 text-primary" />
+                            <p className="text-sm font-medium">Promo requirements</p>
+                          </div>
+                          <ul className="space-y-2 text-sm text-muted-foreground list-disc pl-4">
+                            {selectedDealWorkflow.promoRequirements.map((requirement) => <li key={requirement}>{requirement}</li>)}
+                          </ul>
+                        </div>
+                        <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <ShieldCheck className="h-4 w-4 text-primary" />
+                            <p className="text-sm font-medium">Required disclaimers</p>
+                          </div>
+                          <ul className="space-y-2 text-sm text-muted-foreground list-disc pl-4">
+                            {selectedDealWorkflow.requiredDisclaimers.map((disclaimer) => <li key={disclaimer}>{disclaimer}</li>)}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-border p-4 space-y-3">
+                      <div>
+                        <h3 className="font-semibold">Compliance checklist</h3>
+                        <p className="text-sm text-muted-foreground">Required disclaimer and approval checks tied directly to this deal.</p>
+                      </div>
+                      <div className="space-y-3">
+                        {complianceChecklist.map((item) => (
+                          <label key={item.id} className="flex gap-3 rounded-lg border border-border bg-muted/20 p-3">
+                            {item.manual && isCasino ? (
+                              <input
+                                type="checkbox"
+                                className="mt-1 h-4 w-4"
+                                checked={item.complete}
+                                onChange={() => handleToggleCompliance(item.id)}
+                                aria-label={item.label}
+                              />
+                            ) : (
+                              <div className="mt-0.5">
+                                {item.complete ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <AlertTriangle className="h-4 w-4 text-warning" />}
+                              </div>
+                            )}
+                            <div className="space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-sm font-medium">{item.label}</p>
+                                <StatusBadge status={item.complete ? 'approved' : 'pending'} />
+                              </div>
+                              <p className="text-sm text-muted-foreground">{item.helper}</p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedDealWorkflow && (
+                  <div className="rounded-lg border border-border p-4 space-y-4">
+                    <div>
+                      <h3 className="font-semibold">Promo asset approvals</h3>
+                      <p className="text-sm text-muted-foreground">Copy, links, and media stay inside the room with clear submit, approve, revise, and reject states.</p>
+                    </div>
+                    <div className="grid gap-4 lg:grid-cols-3">
+                      {selectedAssets.map((asset) => {
+                        const draftKey = `${selectedDeal.id}:${asset.id}`;
+                        const canSubmitAsset = asset.owner === 'both' || asset.owner === user?.role;
+
+                        return (
+                          <div key={asset.id} className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
+                            <div className="space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                {asset.kind === 'copy' ? <ClipboardList className="h-4 w-4 text-primary" /> : asset.kind === 'link' ? <Link2 className="h-4 w-4 text-primary" /> : <ImageIcon className="h-4 w-4 text-primary" />}
+                                <p className="font-medium">{asset.label}</p>
+                              </div>
+                              <p className="text-sm text-muted-foreground">{asset.helper}</p>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                              <StatusBadge status={asset.status} />
+                              <span>Owner: {getAssetOwnerLabel(asset.owner)}</span>
+                            </div>
+
+                            <div className="rounded-lg border border-border bg-background/80 p-3 text-sm text-muted-foreground min-h-[88px]">
+                              {asset.content || 'Nothing submitted yet.'}
+                            </div>
+
+                            {asset.submittedBy && (
+                              <p className="text-xs text-muted-foreground">
+                                Submitted by {asset.submittedBy}{asset.submittedAt ? ` on ${new Date(asset.submittedAt).toLocaleDateString()}` : ''}
+                              </p>
+                            )}
+
+                            {asset.reviewerNote && (
+                              <p className="text-xs text-muted-foreground">Review note: {asset.reviewerNote}</p>
+                            )}
+
+                            {canSubmitAsset && (
+                              <div className="space-y-2">
+                                <Label htmlFor={`asset-${asset.id}`}>{getAssetFieldLabel(asset.kind)}</Label>
+                                {asset.kind === 'copy' ? (
+                                  <Textarea
+                                    id={`asset-${asset.id}`}
+                                    value={assetDrafts[draftKey] ?? asset.content}
+                                    onChange={(event) => setAssetDrafts((prev) => ({ ...prev, [draftKey]: event.target.value }))}
+                                    placeholder={asset.kind === 'copy' ? 'Add the caption or stream talking points here' : 'Add the asset content here'}
+                                    rows={4}
+                                  />
+                                ) : (
+                                  <Input
+                                    id={`asset-${asset.id}`}
+                                    value={assetDrafts[draftKey] ?? asset.content}
+                                    onChange={(event) => setAssetDrafts((prev) => ({ ...prev, [draftKey]: event.target.value }))}
+                                    placeholder={asset.kind === 'link' ? 'https://approved-link.example' : 'https://preview.example/media'}
+                                  />
+                                )}
+                                <Button size="sm" variant="outline" onClick={() => handleSubmitAsset(asset)}>
+                                  <Send className="mr-1 h-3 w-3" />{asset.content ? `Resubmit ${asset.label}` : `Submit ${asset.label}`}
+                                </Button>
+                              </div>
+                            )}
+
+                            {isCasino && asset.content && (
+                              <div className="flex flex-wrap gap-2">
+                                <Button size="sm" className="bg-gradient-brand hover:opacity-90" onClick={() => handleReviewAsset(asset, 'approved')}>
+                                  {`Approve ${asset.label}`}
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => handleReviewAsset(asset, 'needs_revision')}>
+                                  {`Request Revision ${asset.label}`}
+                                </Button>
+                                <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleReviewAsset(asset, 'rejected')}>
+                                  {`Reject ${asset.label}`}
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {selectedDealWorkflow && (
+                  <div className="rounded-lg border border-border p-4 space-y-4">
+                    <div>
+                      <h3 className="font-semibold">Delivery proof</h3>
+                      <p className="text-sm text-muted-foreground">Capture live post or stream proof here so reporting and payout stay anchored to the same record.</p>
+                    </div>
+
+                    <div className="space-y-3">
+                      {selectedProofs.length > 0 ? selectedProofs.map((proof) => (
+                        <div key={proof.id} className="rounded-lg border border-border bg-muted/20 p-3 space-y-1">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-sm font-medium">{proof.label}</p>
+                            <p className="text-xs text-muted-foreground">Logged by {proof.submittedBy}</p>
+                          </div>
+                          <a href={proof.url} target="_blank" rel="noreferrer" className="text-sm text-primary underline break-all">{proof.url}</a>
+                          {proof.notes && <p className="text-sm text-muted-foreground">{proof.notes}</p>}
+                        </div>
+                      )) : (
+                        <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                          No delivery proof captured yet.
+                        </div>
+                      )}
+                    </div>
+
+                    {(selectedDeal.state === 'active' || selectedDeal.state === 'completed') ? (
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="proof-label">Placement / post label</Label>
+                          <Input id="proof-label" value={proofLabel} onChange={(event) => setProofLabel(event.target.value)} placeholder="Kick stream clip, X post, Twitch VOD, etc." />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="proof-url">Proof URL</Label>
+                          <Input id="proof-url" value={proofUrl} onChange={(event) => setProofUrl(event.target.value)} placeholder="https://twitch.tv/... or https://x.com/..." />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <Label htmlFor="proof-notes">Proof notes</Label>
+                          <Textarea id="proof-notes" value={proofNotes} onChange={(event) => setProofNotes(event.target.value)} placeholder="Optional notes, timing, or placement context" rows={3} />
+                        </div>
+                        <div>
+                          <Button className="bg-gradient-brand hover:opacity-90" onClick={handleAddProof}>Log delivery proof</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                        Delivery proof unlocks once the deal is live.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <div className="rounded-lg border border-border p-4 space-y-3">
+                  <div>
+                    <h3 className="font-semibold">Continue this deal</h3>
+                    <p className="text-sm text-muted-foreground">Jump to the exact next surface without losing the room context.</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedDeal.state !== 'inquiry' && (
+                      <Link to={`/messages?deal=${selectedDeal.id}`}>
+                        <Button size="sm" variant="outline"><MessageSquare className="mr-1 h-3 w-3" />Messages</Button>
+                      </Link>
+                    )}
+                    {selectedDeal.state !== 'inquiry' && (
+                      <Link to={`/contracts?deal=${selectedDeal.id}`}>
+                        <Button size="sm" variant="outline"><FileText className="mr-1 h-3 w-3" />View Contract</Button>
+                      </Link>
+                    )}
+                    {(selectedDeal.state === 'active' || selectedDeal.state === 'completed') && (
+                      <Link to={`/reports?deal=${selectedDeal.id}`}>
+                        <Button size="sm" className="bg-gradient-brand hover:opacity-90"><DollarSign className="mr-1 h-3 w-3" />Open Reports</Button>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+
+                {isCasino ? (
+                  <div className="rounded-lg border border-warning/30 bg-warning/5 p-4 space-y-3">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-warning">Operator view only</p>
+                      <h3 className="font-semibold mt-1">Internal status and risk flags</h3>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Internal status</p>
+                      <p className="text-sm text-muted-foreground">{operatorPlaybook?.internalStatus}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Notes</p>
+                      <ul className="space-y-2 text-sm text-muted-foreground list-disc pl-4">
+                        {operatorPlaybook?.notes.map((note) => <li key={note}>{note}</li>)}
+                      </ul>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Risk flags</p>
+                      {allRiskFlags.length > 0 ? (
+                        <ul className="space-y-2 text-sm text-muted-foreground list-disc pl-4">
+                          {allRiskFlags.map((flag) => <li key={flag}>{flag}</li>)}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No internal risk flags right now.</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-border p-4 space-y-2">
+                    <h3 className="font-semibold">Shared room view</h3>
+                    <p className="text-sm text-muted-foreground">
+                      You can see contract, delivery, and payout status here without the operator-only notes leaking across the room.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
         {isLoading ? (
           <DealsSkeleton />
         ) : !totalCount ? (
@@ -338,7 +1062,7 @@ const DealsPage = () => {
                             ? 'Leave review'
                             : 'No action required';
               return (
-                <div key={deal.id} className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-elevated transition-all">
+                <div key={deal.id} className={`rounded-xl border bg-card p-5 shadow-card hover:shadow-elevated transition-all ${selectedDealId === deal.id ? 'border-primary/40 ring-1 ring-primary/15' : 'border-border'}`}>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                       <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-accent-foreground">
@@ -379,6 +1103,13 @@ const DealsPage = () => {
                     </div>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant={selectedDealId === deal.id ? 'default' : 'outline'}
+                      onClick={() => openDealRoom(deal.id)}
+                    >
+                      {selectedDealId === deal.id ? 'Viewing Room' : 'Open Deal Room'}
+                    </Button>
                     {/* Inquiry accept/decline for streamers */}
                     {deal.state === 'inquiry' && user?.role === 'streamer' && (
                       <>
