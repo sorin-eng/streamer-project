@@ -298,7 +298,7 @@ Day-close proof:
 - [x] Add payout ledger + reconciliation states
 - [x] Add trust / history / dispute memory that compounds over time
 - [x] Add repeat-deal / renewal flow for successful partnerships
-- [ ] Prove the second-deal path is easier on-platform than off-platform in mock mode
+- [x] Prove the second-deal path is easier on-platform than off-platform in mock mode
 
 ## Phase 5, hardening
 ### Already started
@@ -316,9 +316,14 @@ Day-close proof:
 - [x] Run final pre-live QA pass
 
 ### Still open
-- [ ] Hard-proof the new sticky workflow surfaces after they land (deal room, assets, payouts, trust, renewals)
-- [ ] Prove permissions and visibility boundaries for operator-only notes and trust data
-- [ ] Re-run cross-role end-to-end journeys after the sticky layer lands
+- [x] Hard-proof the new sticky workflow surfaces after they land (deal room, assets, payouts, trust, renewals)
+- [x] Prove permissions and visibility boundaries for operator-only notes and trust data
+- [x] Re-run cross-role end-to-end journeys after the sticky layer lands
+
+Hard-proof proof:
+- `npm test` ✅ (`99/99` passing on April 15, 2026)
+- `npm run build` ✅ (passed on April 15, 2026)
+- sticky mock-mode workflow now has dedicated hardening proof for permissions, proof logging, payout-state transitions, and repeat-deal flow ✅ (`src/test/mockStickyWorkflowHardening.test.tsx`, `src/test/stickyWorkflowCrossRole.test.tsx`)
 
 ## Phase 6, live backend activation
 ### Still open
@@ -374,10 +379,10 @@ Resume them only after the mock/local gates and sticky-layer gates above are sat
 - [x] Prepare clearer live error surfacing in campaign/streamer pages
 
 ## Current next moves
-1. Hard-proof the new sticky workflow surfaces and permissions around deal room, trust memory, payouts, and renewals.
-2. Then reopen live backend work in **Day 8** through **Day 11**.
+1. Reopen live backend work in **Day 8** starting with the `organization_members` RLS recursion fix and the live browse-streamers relationship bug.
+2. Keep the mock-mode sticky workflow tests green while live mode is repaired.
 
 ## Last verification snapshot
-- `npm test` ✅ (`17` files, `95` tests passed on April 15, 2026)
+- `npm test` ✅ (`19` files, `99` tests passed on April 15, 2026)
 - `npm run build` ✅ (passed on April 15, 2026)
 - `VITE_DATA_MODE=supabase npm run build` ✅ (diagnostic only, from April 14, 2026)
