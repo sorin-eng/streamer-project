@@ -3,9 +3,9 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { StatCard } from '@/components/StatCard';
-import { useCommissions, useReportUploads, useDeals } from '@/hooks/useSupabaseData';
+import { useCommissions, useReportUploads, useDeals, useStreamerProfile } from '@/hooks/useSupabaseData';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Users, BarChart3, Upload, Calculator } from 'lucide-react';
+import { DollarSign, Users, BarChart3, Upload, Calculator, Wallet, AlertTriangle } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -20,6 +20,7 @@ import { uploadPerformanceReport, computeCommissions as runCommissionCompute } f
 import { SearchBar } from '@/components/SearchPagination';
 import { BreakdownPieChart, DashboardChartCard, TrendBarChart } from '@/components/dashboard/DashboardCharts';
 import { buildCommissionStatusBreakdown, sumCommissionByMonth } from '@/components/dashboard/dashboardAnalytics';
+import { advancePayoutLedgerStatus, buildPayoutLedgerRows, getPayoutStageCounts, type PayoutStage } from '@/lib/mockPayoutLedger';
 
 const statusChipOptions = ['all', 'pending', 'approved', 'paid', 'rejected'] as const;
 type StatusFilter = (typeof statusChipOptions)[number];
@@ -30,6 +31,7 @@ const ReportsPage = () => {
   const { data: commissions } = useCommissions();
   const { data: uploads } = useReportUploads();
   const { data: deals } = useDeals();
+  const { data: streamerProfile } = useStreamerProfile(user?.role === 'streamer' ? user?.id : undefined);
   const isCasinoManager = user?.role === 'casino_manager';
   const [uploadOpen, setUploadOpen] = useState(false);
   const [computeOpen, setComputeOpen] = useState(false);
@@ -43,6 +45,7 @@ const ReportsPage = () => {
   const [computing, setComputing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [payoutVersion, setPayoutVersion] = useState(0);
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -54,6 +57,9 @@ const ReportsPage = () => {
   const paidCount = commissions?.filter(c => c.status === 'paid').length || 0;
   const rejectedCount = commissions?.filter(c => c.status === 'rejected').length || 0;
   const needsAttentionCount = pendingCount + rejectedCount;
+  const walletAddress = typeof (streamerProfile as { wallet_address?: string | null } | undefined)?.wallet_address === 'string'
+    ? ((streamerProfile as { wallet_address?: string | null }).wallet_address || '').trim()
+    : '';
 
   const filteredRows = useMemo(() => {
     const rows = (commissions || [])
@@ -82,6 +88,29 @@ const ReportsPage = () => {
 
   const monthlyCommissionData = useMemo(() => sumCommissionByMonth((commissions || []) as CommissionWithDeal[]), [commissions]);
   const commissionBreakdown = useMemo(() => buildCommissionStatusBreakdown((commissions || []) as CommissionWithDeal[]), [commissions]);
+  const payoutRows = useMemo(() => buildPayoutLedgerRows({
+    commissions: (commissions || []) as CommissionWithDeal[],
+    uploads: (uploads || []) as Array<{ id: string; file_name: string; created_at: string }>,
+    walletAddress,
+    isStreamerView: user?.role === 'streamer',
+  }), [commissions, uploads, walletAddress, user?.role, payoutVersion]);
+  const payoutCounts = useMemo(() => getPayoutStageCounts(payoutRows), [payoutRows]);
+  const payoutNeedsAttentionCount = payoutRows.filter((row) => row.flags.length > 0).length;
+  const outstandingPayoutAmount = payoutRows.filter((row) => row.status !== 'paid').reduce((sum, row) => sum + row.amount, 0);
+  const paidPayoutAmount = payoutRows.filter((row) => row.status === 'paid').reduce((sum, row) => sum + row.amount, 0);
+  const filteredPayoutRows = useMemo(() => {
+    return payoutRows.filter((row) => {
+      if (focusedDealId && row.dealId !== focusedDealId) return false;
+      if (!searchTerm) return true;
+      const s = searchTerm.toLowerCase();
+      return (
+        row.campaignTitle.toLowerCase().includes(s) ||
+        row.status.toLowerCase().includes(s) ||
+        row.commissionStatus.toLowerCase().includes(s) ||
+        row.flags.some((flag) => flag.toLowerCase().includes(s))
+      );
+    });
+  }, [focusedDealId, payoutRows, searchTerm]);
   const reportReadyDeals = useMemo(() => {
     return (deals || [])
       .filter((deal: DealWithRelations) => deal.state === 'active' || deal.state === 'completed')
@@ -106,6 +135,12 @@ const ReportsPage = () => {
     if (!selectedDeal) setSelectedDeal(focusedDealId);
     if (!computeDeal) setComputeDeal(focusedDealId);
   }, [focusedDealId, selectedDeal, computeDeal, reportReadyDealIds]);
+
+  const handleAdvancePayout = (commissionId: string, nextStatus: PayoutStage) => {
+    advancePayoutLedgerStatus(commissionId, nextStatus);
+    setPayoutVersion((value) => value + 1);
+    toast({ title: `Payout ${nextStatus}` });
+  };
 
   const handleExportCsv = () => {
     if (!filteredRows.length) {
@@ -271,6 +306,149 @@ const ReportsPage = () => {
           <StatCard label="Pending" value={pendingCount} icon={<BarChart3 className="h-5 w-5" />} />
           <StatCard label="Approved" value={approvedCount} icon={<Users className="h-5 w-5" />} />
           <StatCard label="Reports Uploaded" value={uploads?.length || 0} icon={<Upload className="h-5 w-5" />} />
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <h2 className="font-semibold">Payout ledger</h2>
+              <p className="text-sm text-muted-foreground">
+                {isCasinoManager
+                  ? 'Approve, send, and close payouts without losing the report and commission context.'
+                  : 'See what is expected, approved, in flight, or paid, without asking around in chat.'}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/20 p-3 text-sm text-muted-foreground lg:max-w-sm">
+              {isCasinoManager ? (
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Ops note</p>
+                  <p>Before marking anything paid, confirm the streamer payout destination is on file in their profile/settings.</p>
+                </div>
+              ) : walletAddress ? (
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Payout destination on file</p>
+                  <p className="break-all">{walletAddress}</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-foreground">
+                    <Wallet className="h-4 w-4 text-warning" />
+                    <p className="font-medium">Wallet setup missing</p>
+                  </div>
+                  <p>Add your payout wallet in Settings so approved commissions do not stall.</p>
+                  <Link to="/settings">
+                    <Button size="sm" variant="outline">Open Settings</Button>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <DashboardChartCard title="Expected" subtitle="Awaiting payout approval">
+              <p className="text-3xl font-bold">{payoutCounts.expected}</p>
+            </DashboardChartCard>
+            <DashboardChartCard title="Approved" subtitle="Cleared to send">
+              <p className="text-3xl font-bold">{payoutCounts.approved}</p>
+            </DashboardChartCard>
+            <DashboardChartCard title="Pending" subtitle="Sent or processing">
+              <p className="text-3xl font-bold">{payoutCounts.pending}</p>
+            </DashboardChartCard>
+            <DashboardChartCard title="Paid" subtitle={`$${paidPayoutAmount.toLocaleString()} settled`}>
+              <p className="text-3xl font-bold">{payoutCounts.paid}</p>
+            </DashboardChartCard>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Outstanding</p>
+              <p className="text-lg font-semibold">${outstandingPayoutAmount.toLocaleString()}</p>
+              <p className="text-sm text-muted-foreground">Amount not fully marked paid yet.</p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Needs attention</p>
+              <p className="text-lg font-semibold">{payoutNeedsAttentionCount}</p>
+              <p className="text-sm text-muted-foreground">Overdue, missing-approval, or payout-setup flags.</p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Linked reports</p>
+              <p className="text-lg font-semibold">{uploads?.length || 0}</p>
+              <p className="text-sm text-muted-foreground">Upload history now has a direct payout home instead of floating loose.</p>
+            </div>
+          </div>
+
+          {filteredPayoutRows.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+              No payout rows yet. Once commissions are created, the ledger will track payout status here.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredPayoutRows.map((row) => (
+                <div key={row.commissionId} className="rounded-lg border border-border p-4 space-y-3">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium">{row.campaignTitle}</p>
+                        <StatusBadge status={row.status} />
+                        <StatusBadge status={row.commissionStatus} />
+                      </div>
+                      <p className="text-sm text-muted-foreground">${row.amount.toLocaleString()} tied to commission visibility and payout execution.</p>
+                    </div>
+                    {isCasinoManager && (
+                      <div className="flex flex-wrap gap-2">
+                        {row.status === 'expected' && (
+                          <Button size="sm" className="bg-gradient-brand hover:opacity-90" onClick={() => handleAdvancePayout(row.commissionId, 'approved')}>
+                            Approve payout
+                          </Button>
+                        )}
+                        {row.status === 'approved' && (
+                          <Button size="sm" variant="outline" onClick={() => handleAdvancePayout(row.commissionId, 'pending')}>
+                            Mark payout pending
+                          </Button>
+                        )}
+                        {row.status === 'pending' && (
+                          <Button size="sm" className="bg-gradient-brand hover:opacity-90" onClick={() => handleAdvancePayout(row.commissionId, 'paid')}>
+                            Mark payout paid
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-1 text-sm text-muted-foreground">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em]">Source report</p>
+                      <p>{row.sourceUploadName || 'No linked upload yet'}</p>
+                      <p>{row.sourceUploadAt ? new Date(row.sourceUploadAt).toLocaleDateString() : 'Missing upload timestamp'}</p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-1 text-sm text-muted-foreground">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em]">Linked commission</p>
+                      <p>Created {new Date(row.commissionCreatedAt).toLocaleDateString()}</p>
+                      <p>Period: {row.periodStart || '—'}</p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-1 text-sm text-muted-foreground">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em]">Status dates</p>
+                      <p>Expected: {new Date(row.expectedAt).toLocaleDateString()}</p>
+                      <p>Approved: {row.approvedAt ? new Date(row.approvedAt).toLocaleDateString() : '—'}</p>
+                      <p>Paid: {row.paidAt ? new Date(row.paidAt).toLocaleDateString() : '—'}</p>
+                    </div>
+                  </div>
+
+                  {row.flags.length > 0 && (
+                    <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <AlertTriangle className="h-4 w-4 text-warning" />
+                        Payout flags
+                      </div>
+                      <ul className="space-y-1 text-sm text-muted-foreground list-disc pl-4">
+                        {row.flags.map((flag) => <li key={flag}>{flag}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">

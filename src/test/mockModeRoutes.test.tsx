@@ -165,6 +165,8 @@ describe('mock-mode route and role flows', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Earnings' })).toBeInTheDocument();
       expect(screen.getByText('No deals are ready for reporting yet. Finish signatures first, then active deals will show up here.')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Payout ledger' })).toBeInTheDocument();
+      expect(screen.getByText('Wallet setup missing')).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Commission status' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Export filtered CSV' })).toBeInTheDocument();
     });

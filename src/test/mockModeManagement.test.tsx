@@ -5,6 +5,7 @@ import App from '@/App';
 import type { AppUser } from '@/core/domain/types';
 import { getMockPasswordForUser, getMockProfileNotificationPreferences, getMockWebhookEndpoints, mockAppDataService, resetMockAppData } from '@/core/services/mock/mockAppDataService';
 import { resetMockAuthState } from '@/core/services/mock/mockAuthService';
+import { computeCommissions as runCommissionCompute, uploadPerformanceReport } from '@/core/services/platformService';
 
 vi.mock('@/components/dashboard/DashboardCharts', () => ({
   DashboardChartCard: ({ title, children }: { title: string; children: ReactNode }) => (
@@ -156,6 +157,27 @@ describe('mock-mode management flows', () => {
     await waitFor(() => {
       expect(screen.getByText('Commission History')).toBeInTheDocument();
       expect(screen.getAllByText('$30').length).toBeGreaterThan(0);
+      expect(screen.getByRole('heading', { name: 'Payout ledger' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Approve payout' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Approve payout' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Mark payout pending' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark payout pending' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Mark payout paid' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark payout paid' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Mark payout paid' })).not.toBeInTheDocument();
+      expect(screen.getAllByText(/paid/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -183,6 +205,32 @@ describe('mock-mode management flows', () => {
 
     await waitFor(() => {
       expect(computeButton).toBeDisabled();
+    });
+  });
+
+  it('shows a streamer the payout ledger with wallet details but no operator controls', async () => {
+    await uploadPerformanceReport({
+      organizationId: casinoUser.organizationId,
+      dealId: 'deal-2',
+      csvData: 'ftd,2026-04-01,100,player_001',
+      csvFile: null,
+    });
+    await runCommissionCompute({ dealId: 'deal-2' });
+    await mockAppDataService.updateStreamerProfile(streamerUser, {
+      wallet_address: '0xstreamerwallet',
+    });
+
+    setMockUser(streamerUser);
+    setRoute('/reports');
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Earnings' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Payout ledger' })).toBeInTheDocument();
+      expect(screen.getByText('Payout destination on file')).toBeInTheDocument();
+      expect(screen.getByText('0xstreamerwallet')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Approve payout' })).not.toBeInTheDocument();
     });
   });
 

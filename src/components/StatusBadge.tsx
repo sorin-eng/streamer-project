@@ -24,6 +24,7 @@ const statusStyles: Record<string, string> = {
   signed: 'bg-success/10 text-success border-success/20',
   expired: 'bg-muted text-muted-foreground border-border',
   needs_revision: 'bg-warning/10 text-warning border-warning/20',
+  expected: 'bg-info/10 text-info border-info/20',
 };
 
 const dealTypeLabels: Record<string, string> = {

@@ -125,16 +125,16 @@ Day-close proof:
 ### Day 6, add payout ledger + reconciliation
 Focus: make money status legible enough that both sides prefer the platform over side-channel confusion.
 
-- [ ] Add expected / approved / pending / paid payout states and dates
-- [ ] Keep payment method / wallet instructions visible where they are operationally needed
-- [ ] Link report uploads and commission rows to payout summaries instead of leaving them as disconnected artifacts
-- [ ] Add mismatch / overdue / missing-approval flags where payout state looks suspicious
-- [ ] Prove both casino-manager and streamer see role-appropriate payout status in mock mode
+- [x] Add expected / approved / pending / paid payout states and dates
+- [x] Keep payment method / wallet instructions visible where they are operationally needed
+- [x] Link report uploads and commission rows to payout summaries instead of leaving them as disconnected artifacts
+- [x] Add mismatch / overdue / missing-approval flags where payout state looks suspicious
+- [x] Prove both casino-manager and streamer see role-appropriate payout status in mock mode
 
 Day-close proof:
-- `npm test`
-- `npm run build`
-- one mock partnership can move from report upload to commission visibility to payout-state tracking without ambiguity
+- `npm test` ✅ (`91/91` passing on April 15, 2026)
+- `npm run build` ✅ (passed on April 15, 2026)
+- one mock partnership can move from report upload to commission visibility to payout-state tracking without ambiguity ✅ (`src/test/mockPayoutLedger.test.ts`, `src/test/mockModeManagement.test.tsx`)
 
 ### Day 7, add trust/history + repeat-deal mechanics
 Focus: make the second deal faster and safer on-platform than off-platform.
@@ -295,7 +295,7 @@ Day-close proof:
 ### Still open
 - [x] Add a unified deal room / timeline for each partnership
 - [x] Add promo asset approval workflow tied to the deal
-- [ ] Add payout ledger + reconciliation states
+- [x] Add payout ledger + reconciliation states
 - [ ] Add trust / history / dispute memory that compounds over time
 - [ ] Add repeat-deal / renewal flow for successful partnerships
 - [ ] Prove the second-deal path is easier on-platform than off-platform in mock mode
@@ -374,10 +374,9 @@ Resume them only after the mock/local gates and sticky-layer gates above are sat
 - [x] Prepare clearer live error surfacing in campaign/streamer pages
 
 ## Current next moves
-1. Finish **Day 5** completely.
-2. Then finish **Day 6** completely.
-3. Then finish **Day 7** completely.
-4. Only then reopen live backend work in **Day 8** through **Day 11**.
+1. Finish **Day 7** completely.
+2. Then hard-proof the sticky-layer permissions and cross-role flows.
+3. Only then reopen live backend work in **Day 8** through **Day 11**.
 
 ## Last verification snapshot
 - `npm test` ✅ (`13` files, `88` tests passed on April 15, 2026)
