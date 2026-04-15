@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { StatusBadge } from '@/components/StatusBadge';
-import { useDeals, useApplications, useUpdateApplicationStatus, useRespondToInquiry, useCreateReview, useAcceptApplicationToDeal, useAdvanceDealState, useCancelDeal, useDisputeDeal, useContracts, useDealMessages, useCommissions, useReportUploads } from '@/hooks/useSupabaseData';
+import { useDeals, useApplications, useUpdateApplicationStatus, useRespondToInquiry, useCreateReview, useAcceptApplicationToDeal, useAdvanceDealState, useCancelDeal, useDisputeDeal, useContracts, useDealMessages, useCommissions, useReportUploads, useCreateDeal } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -21,6 +21,9 @@ import { DealsSkeleton } from '@/components/PageSkeletons';
 import { DashboardChartCard } from '@/components/dashboard/DashboardCharts';
 import type { DealRoomWorkflow, DealRoomPromoAsset } from '@/lib/mockDealRoomWorkflow';
 import { addDealRoomProof, getDealRoomWorkflowSeed, loadDealRoomWorkflowState, reviewDealRoomAsset, saveDealRoomWorkflowState, submitDealRoomAsset, toggleDealRoomCompliance } from '@/lib/mockDealRoomWorkflow';
+import type { PartnerTrustRecord } from '@/lib/mockPartnerTrust';
+import { appendPartnerTrustNote, buildRepeatDealInput, describePayoutReliability, describeResponseBehavior, getPartnerTrustKey, getPartnerTrustSeed, getRenewalCue, getSetupSpeedComparison, loadPartnerTrustState, savePartnerTrustState } from '@/lib/mockPartnerTrust';
+import { isMockMode } from '@/data/dataMode';
 
 const PAGE_SIZE = 20;
 
@@ -194,6 +197,7 @@ const DealsPage = () => {
   const advanceDealState = useAdvanceDealState();
   const cancelDealMutation = useCancelDeal();
   const disputeDealMutation = useDisputeDeal();
+  const createDeal = useCreateDeal();
   const { data: commissions } = useCommissions();
   const { data: reportUploads } = useReportUploads();
   const { toast } = useToast();
@@ -213,10 +217,13 @@ const DealsPage = () => {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [dealRoomWorkflows, setDealRoomWorkflows] = useState<Record<string, DealRoomWorkflow>>(() => loadDealRoomWorkflowState());
+  const [partnerTrustState, setPartnerTrustState] = useState<Record<string, PartnerTrustRecord>>(() => loadPartnerTrustState());
   const [assetDrafts, setAssetDrafts] = useState<Record<string, string>>({});
   const [proofLabel, setProofLabel] = useState('');
   const [proofUrl, setProofUrl] = useState('');
   const [proofNotes, setProofNotes] = useState('');
+  const [trustNoteDraft, setTrustNoteDraft] = useState('');
+  const [creatingRepeatDeal, setCreatingRepeatDeal] = useState(false);
 
   type DealFilter = 'all' | 'needs_action' | DealWithRelations['state'];
 
@@ -300,6 +307,10 @@ const DealsPage = () => {
     () => (selectedDeal ? dealRoomWorkflows[selectedDeal.id] || getDealRoomWorkflowSeed(selectedDeal.id) : null),
     [dealRoomWorkflows, selectedDeal],
   );
+  const selectedPartnerTrust = useMemo(
+    () => (selectedDeal ? partnerTrustState[getPartnerTrustKey(selectedDeal)] || getPartnerTrustSeed(selectedDeal) : null),
+    [partnerTrustState, selectedDeal],
+  );
   const selectedAssets = selectedDealWorkflow?.assets || [];
   const selectedProofs = selectedDealWorkflow?.proofs || [];
   const approvedAssetCount = selectedAssets.filter((asset) => asset.status === 'approved').length;
@@ -331,6 +342,16 @@ const DealsPage = () => {
     return flags;
   }, [incompleteComplianceCount, pendingAssetCount, selectedDeal, selectedProofs.length]);
   const allRiskFlags = [...roomRiskFlags, ...workflowRiskFlags];
+  const trustHistoryItems = selectedPartnerTrust?.history || [];
+  const renewalCue = selectedPartnerTrust ? getRenewalCue(selectedPartnerTrust) : 'No renewal shortcut yet.';
+  const setupSpeed = selectedPartnerTrust ? getSetupSpeedComparison(selectedPartnerTrust) : { coldStartSteps: 4, repeatSteps: 4, fasterBy: 0 };
+  const canCreateRepeatDeal = Boolean(
+    isCasino
+    && selectedDeal
+    && selectedPartnerTrust
+    && (selectedPartnerTrust.completedDeals > 0 || selectedDeal.state === 'completed' || selectedDeal.state === 'active')
+    && (selectedDeal.campaign_id || isMockMode()),
+  );
 
   useEffect(() => {
     if (requestedDealId && requestedDealId !== selectedDealId) {
@@ -362,6 +383,10 @@ const DealsPage = () => {
   }, [dealRoomWorkflows]);
 
   useEffect(() => {
+    savePartnerTrustState(partnerTrustState);
+  }, [partnerTrustState]);
+
+  useEffect(() => {
     if (!selectedDeal) return;
     if (dealRoomWorkflows[selectedDeal.id]) return;
 
@@ -372,9 +397,22 @@ const DealsPage = () => {
   }, [dealRoomWorkflows, selectedDeal]);
 
   useEffect(() => {
+    if (!selectedDeal) return;
+
+    const trustKey = getPartnerTrustKey(selectedDeal);
+    if (partnerTrustState[trustKey]) return;
+
+    setPartnerTrustState((prev) => ({
+      ...prev,
+      [trustKey]: getPartnerTrustSeed(selectedDeal),
+    }));
+  }, [partnerTrustState, selectedDeal]);
+
+  useEffect(() => {
     setProofLabel('');
     setProofUrl('');
     setProofNotes('');
+    setTrustNoteDraft('');
   }, [selectedDealId]);
 
   const updateSelectedDealWorkflow = (updater: (current: DealRoomWorkflow) => DealRoomWorkflow) => {
@@ -385,6 +423,19 @@ const DealsPage = () => {
       return {
         ...prev,
         [selectedDeal.id]: updater(current),
+      };
+    });
+  };
+
+  const updateSelectedPartnerTrust = (updater: (current: PartnerTrustRecord) => PartnerTrustRecord) => {
+    if (!selectedDeal) return;
+
+    const trustKey = getPartnerTrustKey(selectedDeal);
+    setPartnerTrustState((prev) => {
+      const current = prev[trustKey] || getPartnerTrustSeed(selectedDeal);
+      return {
+        ...prev,
+        [trustKey]: updater(current),
       };
     });
   };
@@ -437,6 +488,41 @@ const DealsPage = () => {
     setProofUrl('');
     setProofNotes('');
     toast({ title: 'Delivery proof logged', description: 'The live placement now feeds the deal record directly.' });
+  };
+
+  const handleSaveTrustNote = () => {
+    if (!selectedDeal || !user) return;
+    if (!trustNoteDraft.trim()) {
+      toast({ title: 'Trust note required', description: 'Add a real note or skip the ceremony.', variant: 'destructive' });
+      return;
+    }
+
+    updateSelectedPartnerTrust((current) => appendPartnerTrustNote(current, trustNoteDraft, user.displayName));
+    setTrustNoteDraft('');
+    toast({ title: 'Operator note saved', description: 'This trust memory now stays attached to the partner.' });
+  };
+
+  const handleCreateRepeatDeal = async () => {
+    if (!selectedDeal || !user || !selectedPartnerTrust) return;
+
+    setCreatingRepeatDeal(true);
+    try {
+      const newDeal = await createDeal.mutateAsync(buildRepeatDealInput(selectedDeal));
+      updateSelectedPartnerTrust((current) => appendPartnerTrustNote(
+        current,
+        `Renewal opened from ${selectedDeal.campaigns?.title || 'Direct Deal'} using the prior ${selectedDeal.deal_type} structure for $${Number(selectedDeal.value).toLocaleString()}.`,
+        user.displayName,
+      ));
+      openDealRoom(newDeal.id);
+      toast({
+        title: 'Repeat deal created',
+        description: `Started from prior terms and skipped ${setupSpeed.fasterBy} cold-start step${setupSpeed.fasterBy === 1 ? '' : 's'}.`,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to create repeat deal';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    }
+    setCreatingRepeatDeal(false);
   };
 
   const openDealRoom = (dealId: string) => {
@@ -753,6 +839,83 @@ const DealsPage = () => {
                   </div>
                 </div>
 
+                {selectedPartnerTrust && (
+                  <div className="rounded-lg border border-border p-4 space-y-4">
+                    <div>
+                      <h3 className="font-semibold">Partner history and renewal lane</h3>
+                      <p className="text-sm text-muted-foreground">Completed deals, disputes, response behavior, and payout reliability stay visible so the second deal does not start from zero.</p>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                      <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-1">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Completed deals</p>
+                        <p className="font-medium">{selectedPartnerTrust.completedDeals}</p>
+                        <p className="text-sm text-muted-foreground">Past wins worth reusing instead of renegotiating from scratch.</p>
+                      </div>
+                      <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-1">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Disputes</p>
+                        <p className="font-medium">{selectedPartnerTrust.disputedDeals}</p>
+                        <p className="text-sm text-muted-foreground">Bad history should stay visible before anyone copies prior terms blindly.</p>
+                      </div>
+                      <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-1">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Response behavior</p>
+                        <p className="font-medium">{describeResponseBehavior(selectedPartnerTrust.avgFirstResponseHours)}</p>
+                        <p className="text-sm text-muted-foreground">Average first reply in {selectedPartnerTrust.avgFirstResponseHours} hours.</p>
+                      </div>
+                      <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-1">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Payout reliability</p>
+                        <p className="font-medium">{describePayoutReliability(selectedPartnerTrust.onTimePayoutRate)}</p>
+                        <p className="text-sm text-muted-foreground">{selectedPartnerTrust.onTimePayoutRate}% of prior payouts landed on time.</p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-sm font-medium">Relationship timeline</p>
+                          <p className="text-sm text-muted-foreground">This is the memory layer that should make repeats safer than cold starts.</p>
+                        </div>
+                        <div className="space-y-3">
+                          {trustHistoryItems.map((item) => (
+                            <div key={item.id} className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <p className="text-sm font-medium">{item.campaignTitle}</p>
+                                <StatusBadge status={item.outcome === 'completed' ? 'completed' : 'disputed'} />
+                              </div>
+                              <p className="text-sm text-muted-foreground">{item.summary}</p>
+                              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                                <span>Closed {new Date(item.closedAt).toLocaleDateString()}</span>
+                                <span>•</span>
+                                <span>{item.responseHours}h first response</span>
+                                <span>•</span>
+                                <span>{item.payoutStatus === 'paid_on_time' ? 'Paid on time' : item.payoutStatus === 'paid_late' ? 'Paid late' : 'Payout held'}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border border-primary/20 bg-primary/[0.04] p-4 space-y-3">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Renewal cue</p>
+                          <h3 className="font-semibold mt-1">Second deal should be easier</h3>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{renewalCue}</p>
+                        <div className="rounded-lg border border-border bg-background/90 p-3 space-y-1">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Setup speed</p>
+                          <p className="font-medium">Cold start: {setupSpeed.coldStartSteps} steps, repeat deal: {setupSpeed.repeatSteps} step{setupSpeed.repeatSteps === 1 ? '' : 's'}</p>
+                          <p className="text-sm text-muted-foreground">Use prior payout, compliance, and response memory instead of reopening the same questions.</p>
+                        </div>
+                        {canCreateRepeatDeal && (
+                          <Button className="bg-gradient-brand hover:opacity-90" onClick={handleCreateRepeatDeal} disabled={creatingRepeatDeal || createDeal.isPending}>
+                            {creatingRepeatDeal || createDeal.isPending ? 'Creating repeat deal...' : 'Create repeat deal from prior terms'}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {selectedDealWorkflow && (
                   <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
                     <div className="rounded-lg border border-border p-4 space-y-3">
@@ -958,6 +1121,57 @@ const DealsPage = () => {
               </div>
 
               <div className="space-y-4">
+                {selectedPartnerTrust && isCasino && (
+                  <div className="rounded-lg border border-warning/30 bg-warning/5 p-4 space-y-4">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-warning">Private trust memory</p>
+                      <h3 className="font-semibold mt-1">Trust memory</h3>
+                      <p className="text-sm text-muted-foreground">Geo notes, compliance notes, and operator context that compounds over time.</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Geo memory</p>
+                      <ul className="space-y-2 text-sm text-muted-foreground list-disc pl-4">
+                        {selectedPartnerTrust.geoMemory.map((item) => <li key={item}>{item}</li>)}
+                      </ul>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Compliance memory</p>
+                      <ul className="space-y-2 text-sm text-muted-foreground list-disc pl-4">
+                        {selectedPartnerTrust.complianceMemory.map((item) => <li key={item}>{item}</li>)}
+                      </ul>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="trust-note">New trust note</Label>
+                      <Textarea
+                        id="trust-note"
+                        value={trustNoteDraft}
+                        onChange={(event) => setTrustNoteDraft(event.target.value)}
+                        rows={3}
+                        placeholder="Save the thing future-you will want to know before opening the next deal."
+                      />
+                      <Button size="sm" variant="outline" onClick={handleSaveTrustNote}>Save operator note</Button>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Saved notes</p>
+                      <div className="space-y-2">
+                        {selectedPartnerTrust.operatorNotes.map((note) => (
+                          <div key={note.id} className="rounded-lg border border-border bg-background/80 p-3 space-y-1">
+                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                              <span>{note.author}</span>
+                              <span>{new Date(note.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{note.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="rounded-lg border border-border p-4 space-y-3">
                   <div>
                     <h3 className="font-semibold">Continue this deal</h3>

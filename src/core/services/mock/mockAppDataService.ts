@@ -1064,6 +1064,8 @@ export const mockAppDataService: AppDataService = {
   async createDeal(values: CreateDealInput, _user: AppUser): Promise<DealWithRelations> {
     const campaign = mockCampaigns.find((item) => item.id === values.campaign_id);
     const streamer = mockStreamers.find((item) => item.user_id === values.streamer_id);
+    const isRenewal = values.application_id?.startsWith('renewal:');
+    const campaignTitle = campaign?.title || (isRenewal ? 'Repeat Deal' : values.campaign_id.slice(0, 8));
     const newDeal: DealWithRelations = {
       id: `deal-${dealCounter++}`,
       application_id: values.application_id || null,
@@ -1079,7 +1081,7 @@ export const mockAppDataService: AppDataService = {
       terms_version: 1,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      campaigns: { title: campaign?.title || values.campaign_id.slice(0, 8) },
+      campaigns: { title: campaignTitle },
       organizations: { name: 'Mock Casino' },
       profiles: { display_name: streamer?.profiles?.display_name || 'Streamer' },
     };

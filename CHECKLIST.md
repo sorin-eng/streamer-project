@@ -139,16 +139,16 @@ Day-close proof:
 ### Day 7, add trust/history + repeat-deal mechanics
 Focus: make the second deal faster and safer on-platform than off-platform.
 
-- [ ] Add partner history surfaces such as completed deals, disputes, response behavior, and payout reliability
-- [ ] Add operator-only trust notes plus geo/compliance memory that compound over time
-- [ ] Add a repeat-deal / duplicate-deal action that prefills prior successful terms
-- [ ] Add renewal / reactivation cues for successful partnerships
-- [ ] Prove the second-deal setup is meaningfully faster on-platform than the first-deal setup in mock mode
+- [x] Add partner history surfaces such as completed deals, disputes, response behavior, and payout reliability
+- [x] Add operator-only trust notes plus geo/compliance memory that compound over time
+- [x] Add a repeat-deal / duplicate-deal action that prefills prior successful terms
+- [x] Add renewal / reactivation cues for successful partnerships
+- [x] Prove the second-deal setup is meaningfully faster on-platform than the first-deal setup in mock mode
 
 Day-close proof:
-- `npm test`
-- `npm run build`
-- one successful mock partnership can be renewed into a second deal with less friction than starting cold
+- `npm test` ✅ (`95/95` passing on April 15, 2026)
+- `npm run build` ✅ (passed on April 15, 2026)
+- one successful mock partnership can be renewed into a second deal with less friction than starting cold ✅ (`src/test/mockRepeatDealWorkflow.test.tsx`)
 
 ### Day 8, reopen live backend safely
 Focus: move from mock-complete product to real backend behavior without breaking the clean local product.
@@ -296,8 +296,8 @@ Day-close proof:
 - [x] Add a unified deal room / timeline for each partnership
 - [x] Add promo asset approval workflow tied to the deal
 - [x] Add payout ledger + reconciliation states
-- [ ] Add trust / history / dispute memory that compounds over time
-- [ ] Add repeat-deal / renewal flow for successful partnerships
+- [x] Add trust / history / dispute memory that compounds over time
+- [x] Add repeat-deal / renewal flow for successful partnerships
 - [ ] Prove the second-deal path is easier on-platform than off-platform in mock mode
 
 ## Phase 5, hardening
@@ -374,11 +374,10 @@ Resume them only after the mock/local gates and sticky-layer gates above are sat
 - [x] Prepare clearer live error surfacing in campaign/streamer pages
 
 ## Current next moves
-1. Finish **Day 7** completely.
-2. Then hard-proof the sticky-layer permissions and cross-role flows.
-3. Only then reopen live backend work in **Day 8** through **Day 11**.
+1. Hard-proof the new sticky workflow surfaces and permissions around deal room, trust memory, payouts, and renewals.
+2. Then reopen live backend work in **Day 8** through **Day 11**.
 
 ## Last verification snapshot
-- `npm test` ✅ (`13` files, `88` tests passed on April 15, 2026)
-- `npm run build` ✅ (passed on April 15, 2026 after rollback to `d3bd771`)
+- `npm test` ✅ (`17` files, `95` tests passed on April 15, 2026)
+- `npm run build` ✅ (passed on April 15, 2026)
 - `VITE_DATA_MODE=supabase npm run build` ✅ (diagnostic only, from April 14, 2026)
